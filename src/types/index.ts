@@ -9,14 +9,14 @@ export const kpiClaimStages: ClaimStageKpi[] = ["Admitted", "Discharged", "Submi
 
 
 export interface ClaimStatus {
-  claimStage: string; 
-  statusDate: string; 
+  claimStage: string;
+  statusDate: string;
   referenceNo: string;
-  hospitalName?: string; 
+  hospitalName?: string;
   claimNumber?: string;
   policyNumber?: string;
   patientName?: string;
-  hospitalId?: string; 
+  hospitalId?: string;
 }
 
 export interface SearchParams {
@@ -40,7 +40,7 @@ export interface User {
   email: string;
   role: UserRole;
   name?: string;
-  hospitalId?: string; 
+  hospitalId?: string;
 }
 
 export interface AuthContextType {
@@ -72,7 +72,39 @@ export interface Service {
   id: string;
   name: string;
   priceType: PriceType;
-  fixedPrice?: number; 
-  slabs?: ServiceSlab; 
+  fixedPrice?: number;
+  slabs?: ServiceSlab;
   isActive: boolean;
+}
+
+// Hospital Master Types
+export interface Doctor {
+  id: string;
+  name: string;
+  specialty?: string;
+}
+
+export type CommissionType = 'Fixed' | 'Percentage';
+
+export interface HospitalReferenceDetails {
+  name: string;
+  mobile: string;
+  commissionType: CommissionType;
+  commissionValue: number;
+}
+
+export interface HospitalDetails extends Hospital { // Extends the basic Hospital type
+  address?: string;
+  email?: string;
+  mobile?: string;
+  assignedDoctorIds: string[]; // Array of Doctor IDs
+  associatedServiceIds: string[]; // Array of Service IDs
+  reference: HospitalReferenceDetails;
+  isActive: boolean;
+}
+
+// For select components
+export interface SelectOption {
+  value: string;
+  label: string;
 }

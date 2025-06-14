@@ -4,7 +4,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, usePathname } from 'next/navigation';
 import React, { useEffect, ReactNode } from 'react';
-import { Loader2, ListChecks } from 'lucide-react'; // Added ListChecks
+import { Loader2, ListChecks, Building2 } from 'lucide-react'; // Added Building2
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Home, UserCircle, Settings, ShieldCheck, Building, Users, FileText, BarChart3 } from 'lucide-react';
@@ -42,11 +42,28 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const commonDashboardPath = '/dashboard';
 
+  // Adjusted allowedPaths to be more specific for sub-routes like /admin/services and /admin/hospitals
   const allowedPathsForRole: Record<string, string[]> = {
-    'super-admin': [commonDashboardPath, roleDashboardPaths['super-admin'], roleDashboardPaths['admin'], '/dashboard/admin/services', roleDashboardPaths['staff'], roleDashboardPaths['hospital']],
-    'admin': [commonDashboardPath, roleDashboardPaths['admin'], '/dashboard/admin/services', roleDashboardPaths['staff'], roleDashboardPaths['hospital'], '/dashboard/reports'], // Added /dashboard/admin/services and /dashboard/reports
-    'staff': [commonDashboardPath, roleDashboardPaths['staff'], '/dashboard/documents'], // Added /dashboard/documents
-    'hospital': [commonDashboardPath, roleDashboardPaths['hospital'], '/dashboard/claims-overview'], // Added /dashboard/claims-overview
+    'super-admin': [
+        commonDashboardPath, 
+        roleDashboardPaths['super-admin'], 
+        roleDashboardPaths['admin'], 
+        '/dashboard/admin/services', 
+        '/dashboard/admin/hospitals',
+        roleDashboardPaths['staff'], 
+        roleDashboardPaths['hospital']
+    ],
+    'admin': [
+        commonDashboardPath, 
+        roleDashboardPaths['admin'], 
+        '/dashboard/admin/services', 
+        '/dashboard/admin/hospitals',
+        roleDashboardPaths['staff'], // Assuming admin can view staff/hospital sections as per previous logic
+        roleDashboardPaths['hospital'], 
+        '/dashboard/reports'
+    ],
+    'staff': [commonDashboardPath, roleDashboardPaths['staff'], '/dashboard/documents'],
+    'hospital': [commonDashboardPath, roleDashboardPaths['hospital'], '/dashboard/claims-overview'],
   };
 
   useEffect(() => {
@@ -61,9 +78,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         return;
       }
       
-      const isPathAllowed = allowedPaths.some(allowedPath => pathname.startsWith(allowedPath));
-
-      if (!isPathAllowed) {
+      // Check if current pathname starts with any of the allowed base paths for the role
+      const isPathAllowed = allowedPaths.some(allowedPath => {
+        // Exact match or prefix match (e.g. /dashboard/admin allows /dashboard/admin/services)
+        return pathname === allowedPath || pathname.startsWith(allowedPath + (allowedPath.endsWith('/') ? '' : '/'));
+      });
+      
+      // Specific handling for /dashboard/admin/services and /dashboard/admin/hospitals edit/new pages
+      if (user.role === 'admin' || user.role === 'super-admin') {
+          if (pathname.startsWith('/dashboard/admin/services/') || pathname.startsWith('/dashboard/admin/hospitals/')) {
+              // This path is allowed for admin/super-admin, so do nothing here to override general check
+          } else if (!isPathAllowed) {
+              router.replace(targetDashboard);
+          }
+      } else if (!isPathAllowed) {
         router.replace(targetDashboard); 
       }
     }
@@ -85,6 +113,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <SidebarLink href="/dashboard/super-admin" icon={ShieldCheck}>Super Admin</SidebarLink>
             <SidebarLink href="/dashboard/admin" icon={Settings}>Admin Mgmt</SidebarLink>
             <SidebarLink href="/dashboard/admin/services" icon={ListChecks}>Service Master</SidebarLink>
+            <SidebarLink href="/dashboard/admin/hospitals" icon={Building2}>Hospital Master</SidebarLink>
             <SidebarLink href="/dashboard/staff" icon={Users}>Staff Mgmt</SidebarLink>
             <SidebarLink href="/dashboard/hospital" icon={Building}>Hospital Mgmt</SidebarLink>
           </>
@@ -94,6 +123,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <>
             <SidebarLink href="/dashboard/admin" icon={Settings}>Admin Panel</SidebarLink>
             <SidebarLink href="/dashboard/admin/services" icon={ListChecks}>Service Master</SidebarLink>
+            <SidebarLink href="/dashboard/admin/hospitals" icon={Building2}>Hospital Master</SidebarLink>
             <SidebarLink href="/dashboard/staff" icon={Users}>Staff View</SidebarLink>
             <SidebarLink href="/dashboard/hospital" icon={Building}>Hospital View</SidebarLink>
             <SidebarLink href="/dashboard/reports" icon={BarChart3}>Reports</SidebarLink>

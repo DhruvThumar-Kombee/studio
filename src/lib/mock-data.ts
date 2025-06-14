@@ -1,5 +1,5 @@
 
-import type { Hospital, ClaimStatus, Service } from '@/types';
+import type { Hospital, ClaimStatus, Service, Doctor, HospitalDetails, HospitalReferenceDetails } from '@/types';
 
 export const hospitals: Hospital[] = [
   { id: 'hosp1', name: 'General Hospital' },
@@ -68,7 +68,7 @@ export const mockServices: Service[] = [
     name: 'Advanced Diagnostic Test',
     priceType: 'Fixed',
     fixedPrice: 3000,
-    isActive: false, 
+    isActive: false,
   },
   {
     id: 'service5',
@@ -89,4 +89,78 @@ export const mockServices: Service[] = [
     fixedPrice: 800,
     isActive: true,
   }
+];
+
+
+export const mockDoctors: Doctor[] = [
+  { id: 'doc1', name: 'Dr. Emily Carter', specialty: 'Cardiology' },
+  { id: 'doc2', name: 'Dr. Benjamin Lee', specialty: 'Neurology' },
+  { id: 'doc3', name: 'Dr. Olivia Rodriguez', specialty: 'Pediatrics' },
+  { id: 'doc4', name: 'Dr. Samuel Green', specialty: 'Orthopedics' },
+  { id: 'doc5', name: 'Dr. Aisha Khan', specialty: 'Oncology' },
+];
+
+const defaultReference: HospitalReferenceDetails = {
+  name: 'Default Ref',
+  mobile: '9000000000',
+  commissionType: 'Fixed',
+  commissionValue: 0,
+};
+
+export const mockHospitalDetailsData: HospitalDetails[] = [
+  {
+    id: 'hosp1',
+    name: 'General Hospital',
+    address: '123 Main St, Anytown, USA',
+    email: 'contact@generalhospital.com',
+    mobile: '1234567890',
+    assignedDoctorIds: ['doc1', 'doc3'],
+    associatedServiceIds: ['service1', 'service2', 'service3'],
+    reference: { name: 'John Smith', mobile: '9876543210', commissionType: 'Fixed', commissionValue: 500 },
+    isActive: true,
+  },
+  {
+    id: 'hosp2',
+    name: 'City Central Clinic',
+    address: '456 Oak Ave, Otherville, USA',
+    email: 'info@citycentralclinic.com',
+    mobile: '2345678901',
+    assignedDoctorIds: ['doc2', 'doc4', 'doc5'],
+    associatedServiceIds: ['service1', 'service5', 'service6'],
+    reference: { name: 'Maria Garcia', mobile: '8765432109', commissionType: 'Percentage', commissionValue: 5 }, // 5%
+    isActive: true,
+  },
+  {
+    id: 'hosp3',
+    name: 'St. Luke’s Medical Center',
+    address: '789 Pine Rd, Somewhere, USA',
+    email: 'admin@stlukes.org',
+    mobile: '3456789012',
+    assignedDoctorIds: ['doc1', 'doc2', 'doc3', 'doc4'],
+    associatedServiceIds: ['service1', 'service2', 'service3', 'service4', 'service5', 'service6'],
+    reference: { name: 'David Wilson', mobile: '7654321098', commissionType: 'Fixed', commissionValue: 1000 },
+    isActive: true,
+  },
+  {
+    id: 'hosp4',
+    name: 'Community Health Services',
+    address: '101 Health Way, Newplace, USA',
+    email: 'support@communityhealth.com',
+    mobile: '4567890123',
+    assignedDoctorIds: ['doc5'],
+    associatedServiceIds: ['service1', 'service6'],
+    reference: { name: 'Linda Brown', mobile: '6543210987', commissionType: 'Percentage', commissionValue: 2.5 }, // 2.5%
+    isActive: false, // Inactive example
+  },
+  {
+    id: 'hosp5',
+    name: 'Mercy Hospital',
+    address: '202 Mercy Ln, Oldtown, USA',
+    email: 'mercy@hospital.net',
+    mobile: '5678901234',
+    assignedDoctorIds: ['doc1', 'doc4'],
+    associatedServiceIds: ['service2', 'service3', 'service5'],
+    reference: { name: 'Robert Davis', mobile: '5432109876', commissionType: 'Fixed', commissionValue: 750 },
+    isActive: true,
+  },
 ];
