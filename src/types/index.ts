@@ -131,7 +131,6 @@ export interface PatientInfo {
   age: number;
   gender: Gender;
   contactNumber: string;
-  // Add other relevant patient details here if needed
 }
 
 export interface PatientAdmission {
@@ -139,10 +138,9 @@ export interface PatientAdmission {
   patientInfo: PatientInfo;
   tpaId: string;
   admissionDate: Date;
-  documents: File[]; // For now, just storing File objects, can be refined
-  hospitalId: string; // Assuming admission is tied to a hospital, could be from logged-in hospital user or a selection
-  status: ClaimStageKpi; // Initial status, e.g., "Admitted"
-  // other relevant fields like claimId, policyDetailsId etc.
+  documents: File[]; 
+  hospitalId: string; 
+  status: ClaimStageKpi; 
 }
 
 // Discharge Entry Types
@@ -157,3 +155,36 @@ export interface DischargeEntry {
 }
 
 export type DischargeEntryFormInput = z.infer<typeof DischargeEntrySchema>;
+
+// Hospital Bill Generator Types
+export interface BillFilters {
+  hospitalId: string;
+  dateFrom: Date;
+  dateTo: Date;
+}
+
+export interface HospitalBillEntry {
+  admissionId: string; // Or a general claim ID
+  patientName: string;
+  admissionDate: string; // Formatted date string
+  servicesDetails: { name: string; price: number }[];
+  totalServiceAmount: number;
+  commissionType: CommissionType;
+  commissionRate: number; // The value or percentage
+  calculatedCommission: number;
+  netAmountToHospital: number;
+  paymentStatus: 'Pending' | 'Received' | 'Partially Paid'; // Example statuses
+}
+
+export interface HospitalBillReport {
+  hospitalName: string;
+  referencePerson: string;
+  dateFrom: string;
+  dateTo: string;
+  entries: HospitalBillEntry[];
+  summary: {
+    totalBillAmount: number;
+    totalCommission: number;
+    totalNetToHospital: number;
+  };
+}
