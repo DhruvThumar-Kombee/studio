@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { 
   Home, UserCircle, Settings, ShieldCheck, Building, Users, FileText, 
-  BarChart3, Loader2, ListChecks, Building2, ShieldAlert, FilePlus, LogOut as LogOutIcon, Sticker, FileSpreadsheet // Added FileSpreadsheet
+  BarChart3, Loader2, ListChecks, Building2, ShieldAlert, FilePlus, LogOut as LogOutIcon, Sticker, FileSpreadsheet
 } from 'lucide-react'; 
 import { LogoutButton } from '@/components/LogoutButton';
 
@@ -52,7 +52,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         '/dashboard/admin/services', 
         '/dashboard/admin/hospitals',
         '/dashboard/admin/tpas',
-        '/dashboard/admin/hospital-bills', // Added
+        '/dashboard/admin/hospital-bills',
+        '/dashboard/admin/reports', // Added for Super Admin
         roleDashboardPaths['staff'], 
         '/dashboard/staff/admissions/new',
         '/dashboard/staff/discharge/new',
@@ -65,13 +66,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         '/dashboard/admin/services', 
         '/dashboard/admin/hospitals',
         '/dashboard/admin/tpas',
-        '/dashboard/admin/hospital-bills', // Added
+        '/dashboard/admin/hospital-bills',
+        '/dashboard/admin/reports', // Added for Admin
         roleDashboardPaths['staff'], 
         '/dashboard/staff/admissions/new',
         '/dashboard/staff/discharge/new',
         '/dashboard/staff/courier-sticker',
         roleDashboardPaths['hospital'], 
-        '/dashboard/reports'
     ],
     'staff': [
         commonDashboardPath, 
@@ -79,7 +80,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         '/dashboard/staff/admissions/new',
         '/dashboard/staff/discharge/new',
         '/dashboard/staff/courier-sticker', 
-        '/dashboard/documents' 
+        '/dashboard/documents',
+        // '/dashboard/staff/reports', // Staff reports path (can be added later)
     ],
     'hospital': [commonDashboardPath, roleDashboardPaths['hospital'], '/dashboard/claims-overview'],
   };
@@ -102,6 +104,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       
       let isNestedPathAllowed = isPathAllowed;
       
+      // Staff specific nested paths
       if (user.role === 'staff' || user.role === 'admin' || user.role === 'super-admin') {
         if (pathname.startsWith('/dashboard/staff/admissions/') ||
             pathname.startsWith('/dashboard/staff/discharge/') ||
@@ -110,11 +113,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         }
       }
       
+      // Admin specific nested paths (includes super-admin implicitly for these)
       if (user.role === 'admin' || user.role === 'super-admin') {
           if (pathname.startsWith('/dashboard/admin/services/') || 
               pathname.startsWith('/dashboard/admin/hospitals/') ||
               pathname.startsWith('/dashboard/admin/tpas/') ||
-              pathname.startsWith('/dashboard/admin/hospital-bills')) { // Added check
+              pathname.startsWith('/dashboard/admin/hospital-bills') ||
+              pathname.startsWith('/dashboard/admin/reports')) { 
              isNestedPathAllowed = true;
           }
       }
@@ -144,7 +149,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <SidebarLink href="/dashboard/admin/services" icon={ListChecks}>Service Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/hospitals" icon={Building2}>Hospital Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/tpas" icon={ShieldAlert}>TPA Master</SidebarLink>
-            <SidebarLink href="/dashboard/admin/hospital-bills" icon={FileSpreadsheet}>Hospital Bills</SidebarLink> {/* Added */}
+            <SidebarLink href="/dashboard/admin/hospital-bills" icon={FileSpreadsheet}>Hospital Bills</SidebarLink>
+            <SidebarLink href="/dashboard/admin/reports" icon={BarChart3}>Reports</SidebarLink>
             <SidebarLink href="/dashboard/staff" icon={Users}>Staff Mgmt</SidebarLink>
             <SidebarLink href="/dashboard/staff/admissions/new" icon={FilePlus}>New Admission</SidebarLink>
             <SidebarLink href="/dashboard/staff/discharge/new" icon={LogOutIcon}>New Discharge</SidebarLink>
@@ -159,13 +165,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <SidebarLink href="/dashboard/admin/services" icon={ListChecks}>Service Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/hospitals" icon={Building2}>Hospital Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/tpas" icon={ShieldAlert}>TPA Master</SidebarLink>
-            <SidebarLink href="/dashboard/admin/hospital-bills" icon={FileSpreadsheet}>Hospital Bills</SidebarLink> {/* Added */}
+            <SidebarLink href="/dashboard/admin/hospital-bills" icon={FileSpreadsheet}>Hospital Bills</SidebarLink>
+            <SidebarLink href="/dashboard/admin/reports" icon={BarChart3}>Reports</SidebarLink>
             <SidebarLink href="/dashboard/staff" icon={Users}>Staff View</SidebarLink>
             <SidebarLink href="/dashboard/staff/admissions/new" icon={FilePlus}>New Admission</SidebarLink>
             <SidebarLink href="/dashboard/staff/discharge/new" icon={LogOutIcon}>New Discharge</SidebarLink>
             <SidebarLink href="/dashboard/staff/courier-sticker" icon={Sticker}>Courier Sticker</SidebarLink>
             <SidebarLink href="/dashboard/hospital" icon={Building}>Hospital View</SidebarLink>
-            <SidebarLink href="/dashboard/reports" icon={BarChart3}>Reports</SidebarLink>
           </>
         );
       case 'staff':
@@ -176,6 +182,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <SidebarLink href="/dashboard/staff/discharge/new" icon={LogOutIcon}>New Discharge</SidebarLink>
             <SidebarLink href="/dashboard/staff/courier-sticker" icon={Sticker}>Courier Sticker</SidebarLink>
             <SidebarLink href="/dashboard/documents" icon={FileText}>Documents</SidebarLink>
+            {/* <SidebarLink href="/dashboard/staff/reports" icon={BarChart3}>My Reports</SidebarLink> */}
           </>
         );
       case 'hospital':
@@ -208,3 +215,4 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
+

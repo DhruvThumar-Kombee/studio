@@ -133,6 +133,16 @@ export interface PatientInfo {
   contactNumber: string;
 }
 
+export interface PatientAdmissionFormInput {
+  patientName: string;
+  patientAge: number;
+  patientGender: Gender;
+  patientContact: string;
+  tpaId: string;
+  admissionDate: Date;
+  documents?: File[]; // Changed to File[]
+}
+
 export interface PatientAdmission {
   id: string;
   patientInfo: PatientInfo;
@@ -188,3 +198,47 @@ export interface HospitalBillReport {
     totalNetToHospital: number;
   };
 }
+
+// Reports Module Types
+export const ReportType = {
+  TOTAL_CLAIMS: 'total_claims',
+  OUTSTANDING_CLAIMS: 'outstanding_claims',
+  PAYMENTS: 'payments',
+  TDS: 'tds',
+  REFERENCE_COMMISSION: 'reference_commission',
+  EXPENSE: 'expense', // Admin/Super Admin only
+  TRANSACTION: 'transaction', // Admin/Super Admin only
+  COURIER: 'courier', // Staff only for now
+} as const;
+
+export type ReportTypeValue = typeof ReportType[keyof typeof ReportType];
+
+export interface ReportFilters {
+  reportType: ReportTypeValue;
+  dateFrom?: Date;
+  dateTo?: Date;
+  hospitalId?: string;
+  partyId?: string; // For TPA/Insurance Company
+}
+
+export interface ClaimReportItem {
+  id: string;
+  claimNumber: string;
+  patientName: string;
+  hospitalName: string;
+  admissionDate: string; // Formatted
+  claimStage: string;
+  policyNumber?: string;
+  totalAmount?: number; // Example field, may vary
+  tpaName?: string;
+}
+
+// General Action Response for reports
+export interface ReportActionResponse<T = any> {
+  success: boolean;
+  message?: string;
+  data?: T; // Specific report data type
+  reportType?: ReportTypeValue; // To help client identify which report data it is
+  errors?: z.ZodIssue[];
+}
+
