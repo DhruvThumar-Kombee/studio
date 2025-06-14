@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 import { EmployeeRoles, type EmployeeRole } from '@/types';
 
@@ -9,8 +8,7 @@ export const EmployeeSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, "Employee name must be at least 2 characters."),
   role: z.enum(EmployeeRoles, {
-    required_error: "Employee role is required.",
-    errorMap: () => ({ message: "Invalid employee role selected." }),
+    required_error: "Employee role is required."
   }),
   contact: z.string().optional().refine(val => {
     if (!val || val.trim() === '') return true; // Optional, so empty is fine
