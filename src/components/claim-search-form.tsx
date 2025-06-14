@@ -12,30 +12,13 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Check, ChevronsUpDown, Loader2, Search, X, FileText } from 'lucide-react';
-import type { Hospital, ClaimStatus, SearchFormValues, SearchParams } from '@/types';
+import type { ClaimStatus, SearchFormValues, SearchParams } from '@/types';
 import { isAlpha, isAlphaNumeric, isNumeric } from '@/lib/validators';
 import { ClaimStatusBadge } from './claim-status-badge';
 import { cn } from '@/lib/utils';
 import { useToast } from "@/hooks/use-toast";
-
-const hospitals: Hospital[] = [
-  { id: 'hosp1', name: 'General Hospital' },
-  { id: 'hosp2', name: 'City Central Clinic' },
-  { id: 'hosp3', name: 'St. Luke’s Medical Center' },
-  { id: 'hosp4', name: 'Community Health Services' },
-  { id: 'hosp5', name: 'Mercy Hospital' },
-];
-
-const mockClaimsData: (ClaimStatus & SearchParams)[] = [
-  { hospitalId: 'hosp1', claimNumber: '12345', claimStage: 'Settled', statusDate: '2023-10-15', referenceNo: 'REF001', patientName: 'Alice Johnson' },
-  { hospitalId: 'hosp2', policyNumber: 'POL9876', claimStage: 'In Review', statusDate: '2023-11-01', referenceNo: 'REF002', patientName: 'Bob Williams' },
-  { hospitalId: 'hosp1', patientName: 'John Doe', claimStage: 'Admitted', statusDate: '2023-09-20', referenceNo: 'REF003' },
-  { hospitalId: 'hosp3', patientName: 'Jane Smith', claimStage: 'Discharged', statusDate: '2023-11-05', referenceNo: 'REF004' },
-  { hospitalId: 'hosp1', policyNumber: 'POL123XYZ', claimStage: 'Denied', statusDate: '2023-10-25', referenceNo: 'REF005', patientName: 'Carol White' },
-  { hospitalId: 'hosp4', claimNumber: '67890', claimStage: 'File Submitted', statusDate: '2023-11-10', referenceNo: 'REF006', patientName: 'David Brown' },
-  { hospitalId: 'hosp5', patientName: 'johnathan doe', claimStage: 'Settled', statusDate: '2023-08-01', referenceNo: 'REF007'},
-  { hospitalId: 'hosp2', claimNumber: '54321', claimStage: 'Information Requested', statusDate: '2023-11-12', referenceNo: 'REF008', patientName: 'Eva Green' },
-];
+import { hospitals } from '@/lib/mock-data';
+import { mockApiSearch } from '@/services/claimService';
 
 const searchSchema = z.object({
   hospitalId: z.string().min(1, 'Hospital selection is required.'),
@@ -52,37 +35,6 @@ const searchSchema = z.object({
   message: 'Please fill at least one identifier: Claim No, Policy No, or Patient Name.',
   path: ['claimNumber'], 
 });
-
-async function mockApiSearch(params: SearchParams): Promise<ClaimStatus | null> {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const { hospitalId, claimNumber, policyNumber, patientName } = params;
-      let foundClaim: (ClaimStatus & SearchParams) | undefined;
-
-      if (claimNumber) {
-        foundClaim = mockClaimsData.find(
-          c => c.hospitalId === hospitalId && c.claimNumber === claimNumber
-        );
-      } else if (policyNumber) {
-        foundClaim = mockClaimsData.find(
-          c => c.hospitalId === hospitalId && c.policyNumber === policyNumber
-        );
-      } else if (patientName) {
-        const lowerPatientName = patientName.toLowerCase();
-        foundClaim = mockClaimsData.find(
-          c => c.hospitalId === hospitalId && c.patientName?.toLowerCase().includes(lowerPatientName)
-        );
-      }
-      
-      if (foundClaim) {
-        const hospital = hospitals.find(h => h.id === foundClaim!.hospitalId);
-        resolve({ ...foundClaim, hospitalName: hospital?.name });
-      } else {
-        resolve(null);
-      }
-    }, 1500); 
-  });
-}
 
 export function ClaimSearchForm() {
   const [searchResults, setSearchResults] = React.useState<ClaimStatus | null | 'not-found'>(null);
@@ -138,9 +90,10 @@ export function ClaimSearchForm() {
       });
       setSearchResults(result ? {
         ...result,
-        claimNumber: data.claimNumber,
-        policyNumber: data.policyNumber,
-        patientName: data.patientName,
+        // Persist the search terms in the results display if needed
+        claimNumber: result.claimNumber || data.claimNumber,
+        policyNumber: result.policyNumber || data.policyNumber,
+        patientName: result.patientName || data.patientName,
       } : 'not-found');
     } catch (error) {
       console.error("Search failed:", error);
