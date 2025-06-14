@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react-dom'; // useFormStatus remains in react-dom
 import { useRouter } from 'next/navigation';
 import { loginAction } from '@/actions/authActions';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,7 +29,7 @@ function SubmitButton() {
 }
 
 export function LoginForm() {
-  const [state, formAction] = useFormState(loginAction, initialState);
+  const [state, formAction] = React.useActionState(loginAction, initialState); // Changed here
   const { login: contextLogin } = useAuth();
   const router = useRouter();
   const [error, setError] = React.useState<string | null>(null);
@@ -53,7 +53,7 @@ export function LoginForm() {
           router.push('/dashboard/hospital');
           break;
         default:
-          router.push('/dashboard'); 
+          router.push('/dashboard');
       }
     } else if (!state.success && state.message) {
       setError(state.message);
