@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react-dom'; // useFormStatus remains in react-dom
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BillFiltersSchema, type BillFiltersFormInput } from '@/lib/schemas/billSchemas';
@@ -38,7 +38,7 @@ interface HospitalBillGeneratorClientProps {
 }
 
 export function HospitalBillGeneratorClient({ availableHospitals }: HospitalBillGeneratorClientProps) {
-  const [reportState, formAction] = useFormState(generateHospitalBillReportAction, initialActionState);
+  const [reportState, formAction] = React.useActionState(generateHospitalBillReportAction, initialActionState); // Corrected: useActionState from react
   const { toast } = useToast();
   const reportTableRef = React.useRef<HTMLDivElement>(null);
 
@@ -202,3 +202,5 @@ export function HospitalBillGeneratorClient({ availableHospitals }: HospitalBill
     </div>
   );
 }
+
+    
