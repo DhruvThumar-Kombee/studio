@@ -1,8 +1,8 @@
-
 "use client";
 
 import * as React from 'react';
-import { useActionState, useFormStatus } from 'react-dom'; // useFormStatus remains in react-dom
+import { useFormStatus } from 'react-dom';
+
 import { useRouter } from 'next/navigation';
 import { loginAction } from '@/actions/authActions';
 import { useAuth } from '@/hooks/useAuth';

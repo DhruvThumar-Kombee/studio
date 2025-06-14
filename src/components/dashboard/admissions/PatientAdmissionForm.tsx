@@ -1,8 +1,8 @@
-
 "use client";
 
 import * as React from 'react';
-import { useActionState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PatientAdmissionSchema, type PatientAdmissionFormInput } from '@/lib/schemas/admissionSchemas';
@@ -10,6 +10,8 @@ import type { TPA, Service, SelectOption, Gender } from '@/types'; // Added Serv
 import { createPatientAdmissionAction } from '@/actions/admissionActions';
 import { getTPAsAction } from '@/actions/tpaMasterActions';
 import { getServicesForSelectAction } from '@/actions/hospitalActions'; // Using this to fetch services
+import type { ActionResponse } from '@/lib/schemas/serviceSchemas';
+import type { PatientAdmission } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,7 +26,7 @@ import { Loader2, Save, Download, AlertCircle, UploadCloud } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
-const initialState = { success: false, message: "", data: null, errors: null };
+const initialState: ActionResponse<PatientAdmission> = { success: false, message: "" };
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -37,7 +39,7 @@ function SubmitButton() {
 }
 
 export function PatientAdmissionForm() {
-  const [state, formAction] = React.useActionState(createPatientAdmissionAction, initialState);
+  const [state, formAction] = useActionState(createPatientAdmissionAction, initialState);
   const { toast } = useToast();
   const [tpas, setTpas] = React.useState<SelectOption[]>([]);
   const [services, setServices] = React.useState<SelectOption[]>([]);
