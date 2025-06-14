@@ -4,7 +4,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, usePathname } from 'next/navigation';
 import React, { useEffect, ReactNode } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ListChecks } from 'lucide-react'; // Added ListChecks
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Home, UserCircle, Settings, ShieldCheck, Building, Users, FileText, BarChart3 } from 'lucide-react';
@@ -43,10 +43,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const commonDashboardPath = '/dashboard';
 
   const allowedPathsForRole: Record<string, string[]> = {
-    'super-admin': [commonDashboardPath, roleDashboardPaths['super-admin'], roleDashboardPaths['admin'], roleDashboardPaths['staff'], roleDashboardPaths['hospital']],
-    'admin': [commonDashboardPath, roleDashboardPaths['admin'], roleDashboardPaths['staff'], roleDashboardPaths['hospital']],
-    'staff': [commonDashboardPath, roleDashboardPaths['staff']],
-    'hospital': [commonDashboardPath, roleDashboardPaths['hospital']],
+    'super-admin': [commonDashboardPath, roleDashboardPaths['super-admin'], roleDashboardPaths['admin'], '/dashboard/admin/services', roleDashboardPaths['staff'], roleDashboardPaths['hospital']],
+    'admin': [commonDashboardPath, roleDashboardPaths['admin'], '/dashboard/admin/services', roleDashboardPaths['staff'], roleDashboardPaths['hospital'], '/dashboard/reports'], // Added /dashboard/admin/services and /dashboard/reports
+    'staff': [commonDashboardPath, roleDashboardPaths['staff'], '/dashboard/documents'], // Added /dashboard/documents
+    'hospital': [commonDashboardPath, roleDashboardPaths['hospital'], '/dashboard/claims-overview'], // Added /dashboard/claims-overview
   };
 
   useEffect(() => {
@@ -57,17 +57,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       const targetDashboard = roleDashboardPaths[user.role] || commonDashboardPath;
 
       if (pathname === commonDashboardPath && targetDashboard !== commonDashboardPath) {
-         // If on generic /dashboard, redirect to specific role dashboard
         router.replace(targetDashboard);
         return;
       }
       
-      // Check if current path is allowed for the user's role
-      // Allow if current path is a prefix of an allowed path (for sub-routes) or an exact match
       const isPathAllowed = allowedPaths.some(allowedPath => pathname.startsWith(allowedPath));
 
       if (!isPathAllowed) {
-        router.replace(targetDashboard); // Or an unauthorized page
+        router.replace(targetDashboard); 
       }
     }
   }, [user, isLoading, token, router, pathname]);
@@ -80,7 +77,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   }
   
-  // Determine sidebar links based on role
   const getSidebarLinks = (role: string | null) => {
     switch(role) {
       case 'super-admin':
@@ -88,6 +84,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <>
             <SidebarLink href="/dashboard/super-admin" icon={ShieldCheck}>Super Admin</SidebarLink>
             <SidebarLink href="/dashboard/admin" icon={Settings}>Admin Mgmt</SidebarLink>
+            <SidebarLink href="/dashboard/admin/services" icon={ListChecks}>Service Master</SidebarLink>
             <SidebarLink href="/dashboard/staff" icon={Users}>Staff Mgmt</SidebarLink>
             <SidebarLink href="/dashboard/hospital" icon={Building}>Hospital Mgmt</SidebarLink>
           </>
@@ -96,6 +93,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         return (
           <>
             <SidebarLink href="/dashboard/admin" icon={Settings}>Admin Panel</SidebarLink>
+            <SidebarLink href="/dashboard/admin/services" icon={ListChecks}>Service Master</SidebarLink>
             <SidebarLink href="/dashboard/staff" icon={Users}>Staff View</SidebarLink>
             <SidebarLink href="/dashboard/hospital" icon={Building}>Hospital View</SidebarLink>
             <SidebarLink href="/dashboard/reports" icon={BarChart3}>Reports</SidebarLink>

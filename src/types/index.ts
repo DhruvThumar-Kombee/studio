@@ -4,20 +4,19 @@ export interface Hospital {
   name: string;
 }
 
-// Specific stages for dashboard KPIs
 export type ClaimStageKpi = "Admitted" | "Discharged" | "Submitted" | "Received" | "Settled";
 export const kpiClaimStages: ClaimStageKpi[] = ["Admitted", "Discharged", "Submitted", "Received", "Settled"];
 
 
 export interface ClaimStatus {
-  claimStage: string; // Allows for other stages like "Denied" in data
-  statusDate: string; // ISO date string (e.g., "2023-11-15")
+  claimStage: string; 
+  statusDate: string; 
   referenceNo: string;
   hospitalName?: string; 
   claimNumber?: string;
   policyNumber?: string;
   patientName?: string;
-  hospitalId?: string; // Added to associate claim with a hospital
+  hospitalId?: string; 
 }
 
 export interface SearchParams {
@@ -41,7 +40,7 @@ export interface User {
   email: string;
   role: UserRole;
   name?: string;
-  hospitalId?: string; // Optional: For users associated with a specific hospital
+  hospitalId?: string; 
 }
 
 export interface AuthContextType {
@@ -59,3 +58,21 @@ export interface LoginResponse {
   message?: string;
 }
 
+// Service Master Types
+export type PriceType = 'Fixed' | 'Slab-Based';
+
+export interface ServiceSlab {
+  basePrice: number;
+  baseLimit: number;
+  additionalPricePerSlab: number;
+  slabSize: number;
+}
+
+export interface Service {
+  id: string;
+  name: string;
+  priceType: PriceType;
+  fixedPrice?: number; 
+  slabs?: ServiceSlab; 
+  isActive: boolean;
+}
