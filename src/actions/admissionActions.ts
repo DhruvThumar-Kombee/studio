@@ -1,7 +1,7 @@
 
 'use server';
 
-import { PatientAdmissionSchema, type PatientAdmissionFormInput } from '@/lib/schemas/admissionSchemas';
+import { PatientAdmissionSchema } from '@/lib/schemas/admissionSchemas';
 import type { ActionResponse } from '@/lib/schemas/serviceSchemas';
 import type { PatientAdmission } from '@/types';
 import { createMockAdmission } from '@/services/admissionService';
@@ -16,31 +16,29 @@ export async function createPatientAdmissionAction(
 ): Promise<ActionResponse<PatientAdmission>> {
   
   const rawFormData: Record<string, any> = {};
-    for (const [key, value] of formData.entries()) {
-        if (key === "admissionDate") {
-            rawFormData[key] = new Date(value as string);
-        } else if (key === "patientAge"){
-            rawFormData[key] = value === "" ? undefined : Number(value);
-        }
-         else {
-            rawFormData[key] = value;
-        }
-    }
-  
-  // Documents handling
-  const documentEntries = Array.from(formData.entries()).filter(([key]) => key.startsWith('documents'));
-  const files: File[] = documentEntries.reduce((acc, [key, value]) => {
-      if (value instanceof File && value.size > 0) { // Ensure it's a real file, not an empty input
-          acc.push(value);
-      }
-      return acc;
-  }, [] as File[]);
+  const files: File[] = [];
+  const serviceIds: string[] = [];
 
-  // Replace rawFormData.documents with the actual files for validation if needed,
-  // or handle file validation separately / primarily on server
-  // For Zod schema, we might pass file metadata or skip its direct validation here
-  // and rely on server-side checks for content, size, type.
+  for (const [key, value] of formData.entries()) {
+    if (key === "admissionDate" && typeof value === 'string') {
+        rawFormData[key] = new Date(value);
+    } else if (key === "patientAge" && typeof value === 'string'){
+        rawFormData[key] = value === "" ? undefined : Number(value);
+    } else if (key.startsWith('documents[')) { // Check for documents array
+        if (value instanceof File && value.size > 0) {
+            files.push(value);
+        }
+    } else if (key === 'associatedServiceIds') { // Handle multi-select for services
+        serviceIds.push(value as string);
+    }
+     else {
+        rawFormData[key] = value;
+    }
+  }
   
+  rawFormData.documents = files; // Assign collected files to be validated by Zod
+  rawFormData.associatedServiceIds = serviceIds; // Assign collected service IDs
+
   const validationResult = PatientAdmissionSchema.safeParse(rawFormData);
 
   if (!validationResult.success) {
@@ -53,13 +51,13 @@ export async function createPatientAdmissionAction(
   }
 
   try {
-    // In a real scenario, hospitalId might come from the logged-in staff user's context
-    const newAdmission = await createMockAdmission(validationResult.data, files, MOCK_HOSPITAL_ID_FOR_STAFF);
-    revalidatePath('/dashboard/staff'); // Or a more specific path if admissions are listed
+    // Pass the validated data, which now includes associatedServiceIds and validated documents (File[])
+    const newAdmission = await createMockAdmission(validationResult.data, validationResult.data.documents, MOCK_HOSPITAL_ID_FOR_STAFF);
+    revalidatePath('/dashboard/staff/admissions/new'); // Or a more specific path if admissions are listed
     return {
       success: true,
-      data: newAdmission,
-      message: "Patient admission created successfully.",
+      data: newAdmission, // This includes the ID
+      message: `Patient admission (ID: ${newAdmission.id}) created successfully.`,
     };
   } catch (error) {
     console.error("Admission Creation Error:", error);

@@ -2,24 +2,27 @@
 "use client";
 
 import * as React from 'react';
-import { useActionState, useFormStatus } from 'react-dom'; // useFormStatus is correct
+import { useActionState, useFormStatus } from 'react-dom';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PatientAdmissionSchema, type PatientAdmissionFormInput } from '@/lib/schemas/admissionSchemas';
-import type { TPA, SelectOption, Gender } from '@/types';
+import type { TPA, Service, SelectOption, Gender } from '@/types'; // Added Service
 import { createPatientAdmissionAction } from '@/actions/admissionActions';
-import { getTPAsAction } from '@/actions/tpaMasterActions'; // Assuming this can be called by staff
+import { getTPAsAction } from '@/actions/tpaMasterActions';
+import { getServicesForSelectAction } from '@/actions/hospitalActions'; // Using this to fetch services
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker'; // Ensure this path is correct
+import { MultiSelect } from '@/components/ui/multi-select'; // Added MultiSelect
+import { DatePicker } from '@/components/ui/date-picker';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, Download, AlertCircle, UploadCloud } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 
 const initialState = { success: false, message: "", data: null, errors: null };
 
@@ -37,6 +40,7 @@ export function PatientAdmissionForm() {
   const [state, formAction] = React.useActionState(createPatientAdmissionAction, initialState);
   const { toast } = useToast();
   const [tpas, setTpas] = React.useState<SelectOption[]>([]);
+  const [services, setServices] = React.useState<SelectOption[]>([]);
   const [fileList, setFileList] = React.useState<FileList | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -44,37 +48,41 @@ export function PatientAdmissionForm() {
     resolver: zodResolver(PatientAdmissionSchema),
     defaultValues: {
       patientName: '',
-      patientAge: undefined, // Or provide a sensible default like 0 or null if schema allows
+      patientAge: undefined,
       patientGender: undefined,
       patientContact: '',
       tpaId: '',
       admissionDate: undefined,
-      documents: undefined, // Will be handled via FormData
+      associatedServiceIds: [], // Initialize
+      documents: [], // Initialize
     },
   });
 
   React.useEffect(() => {
-    async function fetchTPAs() {
+    async function fetchData() {
       try {
         const tpaData = await getTPAsAction();
         setTpas(tpaData.filter(tpa => tpa.isActive).map(tpa => ({ value: tpa.id, label: tpa.name })));
+        
+        const serviceData = await getServicesForSelectAction(); // Fetching all active services
+        setServices(serviceData.map(service => ({ value: service.id, label: service.name })));
+
       } catch (error) {
-        toast({ title: "Error", description: "Failed to load TPAs.", variant: "destructive" });
+        toast({ title: "Error", description: "Failed to load TPAs or Services.", variant: "destructive" });
       }
     }
-    fetchTPAs();
+    fetchData();
   }, [toast]);
 
   React.useEffect(() => {
-    if (state.success) {
-      toast({ title: "Success", description: state.message });
-      reset(); // Reset form fields
+    if (state.success && state.data?.id) { // Check for data.id for the toast message
+      toast({ title: "Success", description: state.message }); // Message already contains the ID
+      reset(); 
       if (fileInputRef.current) {
-        fileInputRef.current.value = ""; // Clear file input
+        fileInputRef.current.value = ""; 
       }
       setFileList(null);
     } else if (state.message && !state.success && state.errors) {
-        // Form-level errors from server action
          const serverErrors = state.errors.map(err => `${err.path.join('.')}: ${err.message}`).join('\n');
          toast({
             title: "Error Submitting Admission",
@@ -92,17 +100,24 @@ export function PatientAdmissionForm() {
   }, [state, toast, reset]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFileList(event.target.files);
+    const files = event.target.files;
+    setFileList(files);
+    if (files && files.length > 0) {
+      setValue('documents', Array.from(files), { shouldValidate: true });
+    } else {
+      setValue('documents', [], { shouldValidate: true });
+    }
   };
-
-  // This wrapper is needed because server actions with useFormState
-  // don't integrate directly with react-hook-form's handleSubmit validation.
-  // We use handleSubmit for client-side validation, then pass to the action.
+  
   const onValidSubmit = (data: PatientAdmissionFormInput) => {
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
         if (key === "admissionDate" && value instanceof Date) {
             formData.append(key, value.toISOString());
+        } else if (key === "associatedServiceIds" && Array.isArray(value)) {
+            value.forEach(serviceId => formData.append(key, serviceId));
+        } else if (key === "documents") {
+            // Files are handled by fileList below
         } else if (value !== undefined && value !== null) {
             formData.append(key, String(value));
         }
@@ -130,12 +145,12 @@ export function PatientAdmissionForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label htmlFor="patientName">Patient Name <span className="text-destructive">*</span></Label>
-                <Input id="patientName" {...register('patientName')} />
+                <Input id="patientName" {...register('patientName')} className={formErrors.patientName ? 'border-destructive focus-visible:ring-destructive' : ''} />
                 {formErrors.patientName && <p className="text-sm text-destructive mt-1">{formErrors.patientName.message}</p>}
               </div>
               <div className="space-y-1">
                 <Label htmlFor="patientAge">Age <span className="text-destructive">*</span></Label>
-                <Input id="patientAge" type="number" {...register('patientAge', { valueAsNumber: true })} />
+                <Input id="patientAge" type="number" {...register('patientAge', { valueAsNumber: true })} className={formErrors.patientAge ? 'border-destructive focus-visible:ring-destructive' : ''} />
                 {formErrors.patientAge && <p className="text-sm text-destructive mt-1">{formErrors.patientAge.message}</p>}
               </div>
             </div>
@@ -164,7 +179,7 @@ export function PatientAdmissionForm() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="patientContact">Contact Number <span className="text-destructive">*</span></Label>
-                <Input id="patientContact" {...register('patientContact')} />
+                <Input id="patientContact" {...register('patientContact')} className={formErrors.patientContact ? 'border-destructive focus-visible:ring-destructive' : ''} />
                 {formErrors.patientContact && <p className="text-sm text-destructive mt-1">{formErrors.patientContact.message}</p>}
               </div>
             </div>
@@ -172,7 +187,7 @@ export function PatientAdmissionForm() {
 
           {/* Admission Details Section */}
           <fieldset className="space-y-4 p-4 border rounded-md">
-            <legend className="text-lg font-medium px-1">Admission Details</legend>
+            <legend className="text-lg font-medium px-1">Admission & Service Details</legend>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                     <Label htmlFor="tpaId">TPA <span className="text-destructive">*</span></Label>
@@ -181,7 +196,7 @@ export function PatientAdmissionForm() {
                         control={control}
                         render={({ field }) => (
                             <Select onValueChange={field.onChange} value={field.value} disabled={tpas.length === 0}>
-                            <SelectTrigger>
+                            <SelectTrigger className={formErrors.tpaId ? 'border-destructive focus-visible:ring-destructive' : ''}>
                                 <SelectValue placeholder="Select TPA" />
                             </SelectTrigger>
                             <SelectContent>
@@ -206,38 +221,57 @@ export function PatientAdmissionForm() {
                                 setDate={field.onChange}
                                 placeholder="Select admission date"
                                 disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                                className={formErrors.admissionDate ? 'border-destructive focus-visible:ring-destructive' : ''}
                             />
                         )}
                     />
                     {formErrors.admissionDate && <p className="text-sm text-destructive mt-1">{formErrors.admissionDate.message}</p>}
                 </div>
             </div>
+            <div className="space-y-1">
+                <Label htmlFor="associatedServiceIds">Associated Services <span className="text-destructive">*</span></Label>
+                <Controller
+                    name="associatedServiceIds"
+                    control={control}
+                    render={({ field }) => (
+                        <MultiSelect
+                            options={services}
+                            selectedValues={field.value || []}
+                            onSelectedValuesChange={field.onChange}
+                            placeholder="Select services..."
+                            disabled={services.length === 0}
+                            className={formErrors.associatedServiceIds ? 'border-destructive focus-visible:ring-destructive' : ''}
+                        />
+                    )}
+                />
+                {services.length === 0 && <p className="text-sm text-muted-foreground mt-1">Loading services or none available.</p>}
+                {formErrors.associatedServiceIds && <p className="text-sm text-destructive mt-1">{formErrors.associatedServiceIds.message}</p>}
+            </div>
           </fieldset>
           
           {/* Document Upload Section */}
           <fieldset className="space-y-4 p-4 border rounded-md">
-            <legend className="text-lg font-medium px-1">Document Upload</legend>
-             <Alert variant="default" className="bg-accent/30">
-              <UploadCloud className="h-4 w-4" />
-              <AlertDescription>
-                Multi-file upload (PDF, JPG, PNG). Max 10 files, 5MB each. (Full validation coming soon)
+            <legend className="text-lg font-medium px-1">Document Upload <span className="text-destructive">*</span></legend>
+             <Alert variant="default" className="bg-accent/10 border-accent/50">
+              <UploadCloud className="h-5 w-5 text-accent" />
+              <AlertDescription className="text-accent-foreground/90">
+                At least one document required. PDF, JPG, PNG. Max 10 files, 5MB each.
               </AlertDescription>
             </Alert>
             <div className="space-y-1">
-              <Label htmlFor="documents">Upload Documents</Label>
+              <Label htmlFor="documents-upload">Upload Admission Documents</Label>
               <Input 
-                id="documents" 
+                id="documents-upload" 
                 type="file" 
                 multiple 
-                {...register('documents')} // RHF handles this for FormData
                 onChange={handleFileChange}
                 ref={fileInputRef}
                 accept=".pdf,.jpg,.jpeg,.png"
-                className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                className={cn("block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20", formErrors.documents ? 'border-destructive focus-visible:ring-destructive' : '')}
               />
               {fileList && fileList.length > 0 && (
-                <div className="mt-2 text-sm text-muted-foreground">
-                  Selected files: {Array.from(fileList).map(f => f.name).join(', ')}
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Selected: {Array.from(fileList).map(f => f.name).join(', ')} ({fileList.length} file(s))
                 </div>
               )}
               {formErrors.documents && <p className="text-sm text-destructive mt-1">{formErrors.documents.message}</p>}
@@ -261,6 +295,12 @@ export function PatientAdmissionForm() {
               </AlertDescription>
             </Alert>
           )}
+           {formErrors.root && (
+             <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{formErrors.root.message}</AlertDescription>
+             </Alert>
+           )}
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 pt-6">
            <Button type="button" variant="outline" onClick={() => { reset(); if(fileInputRef.current) fileInputRef.current.value = ""; setFileList(null); }} className="w-full sm:w-auto">
@@ -272,4 +312,3 @@ export function PatientAdmissionForm() {
     </Card>
   );
 }
-

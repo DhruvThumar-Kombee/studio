@@ -1,20 +1,20 @@
 
 'use server';
-import type { PatientAdmission, PatientAdmissionFormInput } from '@/types'; // Assuming PatientAdmissionFormInput is defined
+import type { PatientAdmission, PatientAdmissionFormInput } from '@/types'; // PatientAdmissionFormInput now includes associatedServiceIds
 import { mockHospitalDetailsData } from '@/lib/mock-data'; // For hospitalId example
 
 // Simulating a database or API for admissions
 let admissionsDB: PatientAdmission[] = [];
 
 export async function createMockAdmission(
-  data: PatientAdmissionFormInput,
+  data: PatientAdmissionFormInput, // This type now includes associatedServiceIds
   files: File[],
   hospitalId: string // Assuming hospitalId comes from logged-in user or a selection
 ): Promise<PatientAdmission> {
   await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
 
   const newAdmission: PatientAdmission = {
-    id: `adm-${Date.now()}`,
+    id: `adm-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, // More unique ID
     patientInfo: {
       name: data.patientName,
       age: data.patientAge,
@@ -23,8 +23,9 @@ export async function createMockAdmission(
     },
     tpaId: data.tpaId,
     admissionDate: data.admissionDate,
+    associatedServiceIds: data.associatedServiceIds, // Store selected services
     documents: files, // Storing File objects directly for mock, in real app store paths/references
-    hospitalId: hospitalId, // Example: use a fixed one or pass from user
+    hospitalId: hospitalId, 
     status: 'Admitted', // Default status on admission
   };
 

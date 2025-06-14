@@ -140,7 +140,8 @@ export interface PatientAdmissionFormInput {
   patientContact: string;
   tpaId: string;
   admissionDate: Date;
-  documents?: File[]; // Changed to File[]
+  associatedServiceIds: string[]; // Added
+  documents: File[]; // Changed to File[] and made mandatory by schema
 }
 
 export interface PatientAdmission {
@@ -148,6 +149,7 @@ export interface PatientAdmission {
   patientInfo: PatientInfo;
   tpaId: string;
   admissionDate: Date;
+  associatedServiceIds: string[]; // Added
   documents: File[]; 
   hospitalId: string; 
   status: ClaimStageKpi; 
