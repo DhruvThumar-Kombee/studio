@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react-dom'; // useFormStatus is correct
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PatientAdmissionSchema, type PatientAdmissionFormInput } from '@/lib/schemas/admissionSchemas';
@@ -34,7 +34,7 @@ function SubmitButton() {
 }
 
 export function PatientAdmissionForm() {
-  const [state, formAction] = useFormState(createPatientAdmissionAction, initialState);
+  const [state, formAction] = React.useActionState(createPatientAdmissionAction, initialState);
   const { toast } = useToast();
   const [tpas, setTpas] = React.useState<SelectOption[]>([]);
   const [fileList, setFileList] = React.useState<FileList | null>(null);
@@ -272,3 +272,4 @@ export function PatientAdmissionForm() {
     </Card>
   );
 }
+

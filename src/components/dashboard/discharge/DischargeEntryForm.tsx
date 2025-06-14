@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react-dom'; // useFormStatus is correct
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { DischargeEntrySchema, type DischargeEntryFormInput } from '@/lib/schemas/dischargeSchemas';
@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, UploadCloud, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; // Added AlertTitle
+import { cn } from '@/lib/utils';
 
 const initialState: { success: boolean, message?: string, data?: any, errors?: any[] } = { success: false, message: "", data: null, errors: [] };
 
@@ -31,7 +32,7 @@ function SubmitButton() {
 }
 
 export function DischargeEntryForm() {
-  const [state, formAction] = useFormState(createDischargeEntryAction, initialState);
+  const [state, formAction] = React.useActionState(createDischargeEntryAction, initialState);
   const { toast } = useToast();
   const [fileList, setFileList] = React.useState<FileList | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -235,3 +236,4 @@ export function DischargeEntryForm() {
     </Card>
   );
 }
+
