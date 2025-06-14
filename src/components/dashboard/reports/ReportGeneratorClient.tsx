@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { useActionState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react-dom'; // useFormStatus from react-dom
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ReportFiltersSchema, type ReportFiltersFormInput } from '@/lib/schemas/reportSchemas';
@@ -29,7 +29,7 @@ const initialActionState: ReportActionResponse = {
 const ALL_HOSPITALS_VALUE = "__ALL_HOSPITALS__"; // Constant for "All Hospitals" option
 
 function SubmitButton() {
-  const { pending } = useFormStatus();
+  const { pending } = useFormStatus(); // Correctly from react-dom
   return (
     <Button type="submit" disabled={pending} className="w-full sm:w-auto">
       {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSearch className="mr-2 h-4 w-4" />}
@@ -52,7 +52,7 @@ const reportTypeOptions: SelectOption[] = [
 ];
 
 export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorClientProps) {
-  const [reportState, formAction] = useActionState(generateReportAction, initialActionState);
+  const [reportState, formAction] = React.useActionState(generateReportAction, initialActionState); // Correctly from react
   const { toast } = useToast();
   const reportContentRef = React.useRef<HTMLDivElement>(null);
 
@@ -62,7 +62,7 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
       reportType: ReportType.TOTAL_CLAIMS, // Default report type
       dateFrom: undefined,
       dateTo: undefined,
-      hospitalId: undefined, // Default to undefined, meaning "All Hospitals"
+      hospitalId: undefined, // Default to undefined, meaning "All Hospitals" will be selected by placeholder
       // partyId: undefined,
     },
   });
@@ -70,7 +70,15 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
   const selectedReportType = watch('reportType');
 
   React.useEffect(() => {
-    if (reportState.message) {
+    if (reportState.message && !reportState.success && reportState.errors) {
+      const errorDetails = reportState.errors.map(err => `${err.path.join('.')}: ${err.message}`).join('; ');
+      toast({
+        title: "Report Generation Failed",
+        description: `${reportState.message} ${errorDetails}`,
+        variant: "destructive",
+        duration: 7000,
+      });
+    } else if (reportState.message) {
       toast({
         title: reportState.success ? "Report Status" : "Report Error",
         description: reportState.message,
@@ -85,7 +93,6 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
     if (data.dateFrom) formData.append('dateFrom', data.dateFrom.toISOString());
     if (data.dateTo) formData.append('dateTo', data.dateTo.toISOString());
     
-    // Only append hospitalId if a specific hospital is selected
     if (data.hospitalId && data.hospitalId !== ALL_HOSPITALS_VALUE) {
       formData.append('hospitalId', data.hospitalId);
     }
@@ -103,8 +110,6 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
         printWindow.document.write('<style>body{font-family:Arial,sans-serif;margin:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#f2f2f2}.no-print{display:none;} @media print { body { margin: 0.5cm; } h1 { page-break-before: auto; } table { page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } thead { display: table-header-group; } tfoot { display: table-footer-group; } }</style>');
         printWindow.document.write('</head><body>');
         printWindow.document.write('<h1>' + reportTitle + '</h1>');
-        // Optional: Add filter criteria to print header
-        // printWindow.document.write('<div>Filters: ...</div>');
         printWindow.document.write(reportContentRef.current.innerHTML);
         printWindow.document.write('</body></html>');
         printWindow.document.close();
@@ -133,9 +138,6 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
     switch (reportState.reportType) {
       case ReportType.TOTAL_CLAIMS:
         return <TotalClaimsReportTable data={reportState.data as ClaimReportItem[]} />;
-      // Add cases for other report types here
-      // case ReportType.OUTSTANDING_CLAIMS:
-      //   return <OutstandingClaimsReportTable data={reportState.data as OutstandingClaimItem[]} />;
       default:
         return <p className="text-muted-foreground mt-4">Selected report type display not implemented.</p>;
     }
@@ -145,7 +147,6 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
     <div className="space-y-6">
       <form onSubmit={handleSubmit(onValidSubmit)} className="space-y-4 p-4 border rounded-md bg-muted/20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
-          {/* Report Type Selector */}
           <div className="space-y-1">
             <Label htmlFor="reportType">Report Type <span className="text-destructive">*</span></Label>
             <Controller
@@ -169,7 +170,6 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
             {formErrors.reportType && <p className="text-sm text-destructive mt-1">{formErrors.reportType.message}</p>}
           </div>
 
-          {/* Hospital Filter */}
           <div className="space-y-1">
             <Label htmlFor="hospitalId">Hospital (Optional)</Label>
             <Controller
@@ -178,7 +178,7 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
               render={({ field }) => (
                 <Select 
                   onValueChange={field.onChange} 
-                  value={field.value || ALL_HOSPITALS_VALUE} // Use sentinel if undefined
+                  value={field.value || ALL_HOSPITALS_VALUE}
                   disabled={availableHospitals.length === 0}
                 >
                   <SelectTrigger id="hospitalId">
@@ -196,7 +196,6 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
             {formErrors.hospitalId && <p className="text-sm text-destructive mt-1">{formErrors.hospitalId.message}</p>}
           </div>
           
-          {/* Date From Filter */}
           <div className="space-y-1">
             <Label htmlFor="dateFrom">Date From (Optional)</Label>
             <Controller
@@ -210,7 +209,6 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
             {formErrors.dateFrom && <p className="text-sm text-destructive mt-1">{formErrors.dateFrom.message}</p>}
           </div>
 
-          {/* Date To Filter */}
           <div className="space-y-1">
             <Label htmlFor="dateTo">Date To (Optional)</Label>
             <Controller
@@ -223,12 +221,6 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
             />
             {formErrors.dateTo && <p className="text-sm text-destructive mt-1">{formErrors.dateTo.message}</p>}
           </div>
-
-          {/* Party (TPA/Insurance) Filter - Placeholder for future */}
-          {/* <div className="space-y-1">
-            <Label htmlFor="partyId">TPA/Insurance Co. (Optional)</Label>
-            <Controller ... />
-          </div> */}
         </div>
         {formErrors.root && <p className="text-sm text-destructive mt-1 text-center">{formErrors.root.message}</p>}
         <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
@@ -239,7 +231,7 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
                reportType: ReportType.TOTAL_CLAIMS, 
                dateFrom: undefined, 
                dateTo: undefined, 
-               hospitalId: undefined // Reset to undefined
+               hospitalId: undefined 
              })} 
              className="w-full sm:w-auto"
            >
@@ -249,7 +241,6 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
         </div>
       </form>
 
-      {/* Display server-side form/action errors */}
       {reportState?.errors && reportState.errors.length > 0 && !reportState.success && (
         <Alert variant="destructive" className="mt-4">
           <AlertCircle className="h-4 w-4" />
@@ -265,15 +256,12 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
         </Alert>
       )}
       
-      {/* Report Display Area */}
       {reportState.success && reportState.data && (Array.isArray(reportState.data) && reportState.data.length > 0) && (
         <div className="mt-6">
           <div className="flex justify-end mb-4">
             <Button onClick={handlePrint} variant="outline">
               <Printer className="mr-2 h-4 w-4" /> Print Report
             </Button>
-            {/* Placeholder for Export to Excel/PDF */}
-            {/* <Button variant="outline" className="ml-2" disabled>Export Excel (Soon)</Button> */}
           </div>
           <div ref={reportContentRef}>
             {renderReportTable()}
@@ -289,8 +277,8 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
           </AlertDescription>
         </Alert>
       )}
-
     </div>
   );
 }
 
+    
