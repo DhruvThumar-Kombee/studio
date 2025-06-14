@@ -108,3 +108,13 @@ export interface SelectOption {
   value: string;
   label: string;
 }
+
+// TPA Master Types
+export interface TPA {
+  id: string;
+  name: string;
+  address?: string;
+  mobile?: string;
+  email?: string;
+  isActive: boolean;
+}

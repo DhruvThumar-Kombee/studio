@@ -4,7 +4,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, usePathname } from 'next/navigation';
 import React, { useEffect, ReactNode } from 'react';
-import { Loader2, ListChecks, Building2 } from 'lucide-react'; // Added Building2
+import { Loader2, ListChecks, Building2, ShieldAlert } from 'lucide-react'; // Added ShieldAlert
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Home, UserCircle, Settings, ShieldCheck, Building, Users, FileText, BarChart3 } from 'lucide-react';
@@ -42,7 +42,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const commonDashboardPath = '/dashboard';
 
-  // Adjusted allowedPaths to be more specific for sub-routes like /admin/services and /admin/hospitals
   const allowedPathsForRole: Record<string, string[]> = {
     'super-admin': [
         commonDashboardPath, 
@@ -50,6 +49,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         roleDashboardPaths['admin'], 
         '/dashboard/admin/services', 
         '/dashboard/admin/hospitals',
+        '/dashboard/admin/tpas', // Added TPA path
         roleDashboardPaths['staff'], 
         roleDashboardPaths['hospital']
     ],
@@ -58,7 +58,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         roleDashboardPaths['admin'], 
         '/dashboard/admin/services', 
         '/dashboard/admin/hospitals',
-        roleDashboardPaths['staff'], // Assuming admin can view staff/hospital sections as per previous logic
+        '/dashboard/admin/tpas', // Added TPA path
+        roleDashboardPaths['staff'], 
         roleDashboardPaths['hospital'], 
         '/dashboard/reports'
     ],
@@ -78,16 +79,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         return;
       }
       
-      // Check if current pathname starts with any of the allowed base paths for the role
       const isPathAllowed = allowedPaths.some(allowedPath => {
-        // Exact match or prefix match (e.g. /dashboard/admin allows /dashboard/admin/services)
         return pathname === allowedPath || pathname.startsWith(allowedPath + (allowedPath.endsWith('/') ? '' : '/'));
       });
       
-      // Specific handling for /dashboard/admin/services and /dashboard/admin/hospitals edit/new pages
+      // Specific handling for admin sub-pages
       if (user.role === 'admin' || user.role === 'super-admin') {
-          if (pathname.startsWith('/dashboard/admin/services/') || pathname.startsWith('/dashboard/admin/hospitals/')) {
-              // This path is allowed for admin/super-admin, so do nothing here to override general check
+          if (pathname.startsWith('/dashboard/admin/services/') || 
+              pathname.startsWith('/dashboard/admin/hospitals/') ||
+              pathname.startsWith('/dashboard/admin/tpas/')) {
+             // This path is allowed, do nothing
           } else if (!isPathAllowed) {
               router.replace(targetDashboard);
           }
@@ -114,6 +115,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <SidebarLink href="/dashboard/admin" icon={Settings}>Admin Mgmt</SidebarLink>
             <SidebarLink href="/dashboard/admin/services" icon={ListChecks}>Service Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/hospitals" icon={Building2}>Hospital Master</SidebarLink>
+            <SidebarLink href="/dashboard/admin/tpas" icon={ShieldAlert}>TPA Master</SidebarLink>
             <SidebarLink href="/dashboard/staff" icon={Users}>Staff Mgmt</SidebarLink>
             <SidebarLink href="/dashboard/hospital" icon={Building}>Hospital Mgmt</SidebarLink>
           </>
@@ -124,6 +126,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <SidebarLink href="/dashboard/admin" icon={Settings}>Admin Panel</SidebarLink>
             <SidebarLink href="/dashboard/admin/services" icon={ListChecks}>Service Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/hospitals" icon={Building2}>Hospital Master</SidebarLink>
+            <SidebarLink href="/dashboard/admin/tpas" icon={ShieldAlert}>TPA Master</SidebarLink>
             <SidebarLink href="/dashboard/staff" icon={Users}>Staff View</SidebarLink>
             <SidebarLink href="/dashboard/hospital" icon={Building}>Hospital View</SidebarLink>
             <SidebarLink href="/dashboard/reports" icon={BarChart3}>Reports</SidebarLink>
@@ -147,7 +150,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         return null;
     }
   }
-
 
   return (
     <div className="flex min-h-screen bg-background">

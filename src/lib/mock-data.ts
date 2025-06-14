@@ -1,5 +1,5 @@
 
-import type { Hospital, ClaimStatus, Service, Doctor, HospitalDetails, HospitalReferenceDetails } from '@/types';
+import type { Hospital, ClaimStatus, Service, Doctor, HospitalDetails, HospitalReferenceDetails, TPA } from '@/types';
 
 export const hospitals: Hospital[] = [
   { id: 'hosp1', name: 'General Hospital' },
@@ -163,4 +163,12 @@ export const mockHospitalDetailsData: HospitalDetails[] = [
     reference: { name: 'Robert Davis', mobile: '5432109876', commissionType: 'Fixed', commissionValue: 750 },
     isActive: true,
   },
+];
+
+export const mockTPAs: TPA[] = [
+  { id: 'tpa1', name: 'MediCare TPA Services', address: '10 Health Plaza, Wellness City', mobile: '9876500001', email: 'contact@medicare-tpa.com', isActive: true },
+  { id: 'tpa2', name: 'Heritage Health TPA', address: '20 Insurance Rd, Securetown', mobile: '9876500002', email: 'info@heritagehealthtpa.co', isActive: true },
+  { id: 'tpa3', name: 'Family Health Plan TPA', address: '30 Care Ave, Supportville', mobile: '9876500003', email: 'support@fhpltpa.com', isActive: false },
+  { id: 'tpa4', name: 'Vipul Medcorp TPA', address: '40 Corporate Blvd, Businesston', mobile: '9876500004', email: 'admin@vipulmedtpa.in', isActive: true },
+  { id: 'tpa5', name: 'Paramount Health Services & Insurance TPA', address: '50 Trust Circle, Reliability Park', mobile: '9876500005', email: 'claims@paramounttpa.com', isActive: true },
 ];
