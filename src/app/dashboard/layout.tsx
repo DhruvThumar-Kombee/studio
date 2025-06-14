@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         '/dashboard/admin/hospital-bills',
         '/dashboard/admin/reports',
         '/dashboard/admin/transactions',
-        '/dashboard/admin/employees', // New
+        '/dashboard/admin/employees', 
         roleDashboardPaths['staff'], 
         '/dashboard/staff/admissions/new',
         '/dashboard/staff/discharge/new',
@@ -71,7 +71,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         '/dashboard/admin/hospital-bills',
         '/dashboard/admin/reports',
         '/dashboard/admin/transactions',
-        '/dashboard/admin/employees', // New
+        '/dashboard/admin/employees', 
         roleDashboardPaths['staff'], 
         '/dashboard/staff/admissions/new',
         '/dashboard/staff/discharge/new',
@@ -85,7 +85,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         '/dashboard/staff/discharge/new',
         '/dashboard/staff/courier-sticker', 
         '/dashboard/documents',
-        // '/dashboard/staff/reports', // Staff reports path (can be added later)
+        // '/dashboard/staff/reports', // Staff reports path (can be added later if limited reports are defined)
     ],
     'hospital': [commonDashboardPath, roleDashboardPaths['hospital'], '/dashboard/claims-overview'],
   };
@@ -102,37 +102,30 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         return;
       }
       
-      const isPathAllowed = allowedPaths.some(allowedPath => {
-        return pathname === allowedPath || pathname.startsWith(allowedPath + (allowedPath.endsWith('/') ? '' : '/'));
-      });
-      
-      let isNestedPathAllowed = isPathAllowed;
-      
-      // Staff specific nested paths
-      if (user.role === 'staff' || user.role === 'admin' || user.role === 'super-admin') {
-        if (pathname.startsWith('/dashboard/staff/admissions/') ||
-            pathname.startsWith('/dashboard/staff/discharge/') ||
-            pathname.startsWith('/dashboard/staff/courier-sticker')) { 
-          isNestedPathAllowed = true;
+      // Check if current path or any of its parent segments up to /dashboard matches an allowed path
+      let isPathAllowed = false;
+      let currentPathSegment = pathname;
+      while (currentPathSegment.length >= commonDashboardPath.length) {
+        if (allowedPaths.includes(currentPathSegment)) {
+          isPathAllowed = true;
+          break;
         }
-      }
-      
-      // Admin specific nested paths (includes super-admin implicitly for these)
-      if (user.role === 'admin' || user.role === 'super-admin') {
-          if (pathname.startsWith('/dashboard/admin/services/') || 
-              pathname.startsWith('/dashboard/admin/hospitals/') ||
-              pathname.startsWith('/dashboard/admin/tpas/') ||
-              pathname.startsWith('/dashboard/admin/hospital-bills') ||
-              pathname.startsWith('/dashboard/admin/transactions') || 
-              pathname.startsWith('/dashboard/admin/reports') ||
-              pathname.startsWith('/dashboard/admin/employees') // New
-            ) { 
-             isNestedPathAllowed = true;
-          }
+        // Check if any allowed path is a prefix of the current path segment
+        if (allowedPaths.some(p => currentPathSegment.startsWith(p + (p.endsWith('/') ? '' : '/')) || currentPathSegment === p)) {
+             isPathAllowed = true;
+             break;
+        }
+        if (currentPathSegment === commonDashboardPath && allowedPaths.includes(commonDashboardPath)) {
+            isPathAllowed = true;
+            break;
+        }
+        const lastSlash = currentPathSegment.lastIndexOf('/');
+        if (lastSlash <= commonDashboardPath.length -1) break; // Stop if we are at /dashboard or shorter
+        currentPathSegment = currentPathSegment.substring(0, lastSlash);
       }
 
 
-      if (!isNestedPathAllowed) {
+      if (!isPathAllowed) {
         router.replace(targetDashboard); 
       }
     }
