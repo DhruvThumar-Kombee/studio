@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Check, ChevronsUpDown, Loader2, Search, X, FileText } from 'lucide-react';
-import type { ClaimStatus, SearchFormValues, SearchParams } from '@/types';
+import type { ClaimStatus, SearchFormValues } from '@/types';
 import { isAlpha, isAlphaNumeric, isNumeric } from '@/lib/validators';
 import { ClaimStatusBadge } from './claim-status-badge';
 import { cn } from '@/lib/utils';
@@ -33,7 +33,7 @@ const searchSchema = z.object({
   }),
 }).refine(data => !!data.claimNumber || !!data.policyNumber || !!data.patientName, {
   message: 'Please fill at least one identifier: Claim No, Policy No, or Patient Name.',
-  path: ['claimNumber'], 
+  path: ['root'], 
 });
 
 export function ClaimSearchForm() {
@@ -53,7 +53,7 @@ export function ClaimSearchForm() {
     mode: 'onChange', 
   });
 
-  const { control, handleSubmit, reset, watch, formState, setError, clearErrors } = form;
+  const { control, handleSubmit, reset, watch, formState, clearErrors } = form;
   const { errors } = formState;
 
   const hospitalIdValue = watch('hospitalId');
@@ -64,21 +64,6 @@ export function ClaimSearchForm() {
   const isAnyIdentifierFilled = !!claimNumberValue || !!policyNumberValue || !!patientNameValue;
   
   const onSubmit = async (data: SearchFormValues) => {
-    clearErrors("root"); 
-    if (!isAnyIdentifierFilled && !errors.claimNumber && !errors.policyNumber && !errors.patientName && !errors.hospitalId) {
-       const zodError = searchSchema.safeParse(data);
-       if (!zodError.success && zodError.error.issues.some(issue => issue.message === 'Please fill at least one identifier: Claim No, Policy No, or Patient Name.')) {
-         setError("root.custom", { type: "custom", message: "Please fill at least one identifier: Claim No, Policy No, or Patient Name." });
-         toast({
-            title: "Missing Information",
-            description: "Please fill at least one identifier: Claim No, Policy No, or Patient Name.",
-            variant: "destructive",
-          });
-         return;
-       }
-    }
-
-
     setIsLoading(true);
     setSearchResults(null);
     try {
@@ -90,7 +75,6 @@ export function ClaimSearchForm() {
       });
       setSearchResults(result ? {
         ...result,
-        // Persist the search terms in the results display if needed
         claimNumber: result.claimNumber || data.claimNumber,
         policyNumber: result.policyNumber || data.policyNumber,
         patientName: result.patientName || data.patientName,
@@ -105,6 +89,16 @@ export function ClaimSearchForm() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const onError = (formErrors: FieldErrors<SearchFormValues>) => {
+    if (formErrors.root?.message === 'Please fill at least one identifier: Claim No, Policy No, or Patient Name.') {
+      toast({
+        title: "Missing Information",
+        description: formErrors.root.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -130,7 +124,7 @@ export function ClaimSearchForm() {
           Find the status of your claim using the form below.
         </CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit, onError)}>
         <CardContent className="space-y-6 p-6">
           <div className="space-y-2">
             <Label htmlFor="hospitalId" className="font-medium text-foreground">Hospital Name <span className="text-destructive">*</span></Label>
@@ -245,9 +239,8 @@ export function ClaimSearchForm() {
             />
             {errors.patientName && <p id="patientNameError" className="text-sm text-destructive mt-1">{errors.patientName.message}</p>}
           </div>
-          {errors.root?.custom && <p className="text-sm text-destructive mt-1 text-center">{errors.root.custom.message}</p>}
-          {/* Display Zod's global refine error if not specific to a field */}
-          {errors.root?.message && !errors.claimNumber && !errors.policyNumber && !errors.patientName && <p className="text-sm text-destructive mt-1 text-center">{errors.root.message}</p>}
+          
+          {errors.root?.message && <p className="text-sm text-destructive mt-1 text-center">{errors.root.message}</p>}
 
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row justify-center gap-4 p-6">
