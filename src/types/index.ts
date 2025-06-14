@@ -118,3 +118,25 @@ export interface TPA {
   email?: string;
   isActive: boolean;
 }
+
+// Patient Admission Types
+export type Gender = 'Male' | 'Female' | 'Other';
+
+export interface PatientInfo {
+  name: string;
+  age: number;
+  gender: Gender;
+  contactNumber: string;
+  // Add other relevant patient details here if needed
+}
+
+export interface PatientAdmission {
+  id: string;
+  patientInfo: PatientInfo;
+  tpaId: string;
+  admissionDate: Date;
+  documents: File[]; // For now, just storing File objects, can be refined
+  hospitalId: string; // Assuming admission is tied to a hospital, could be from logged-in hospital user or a selection
+  status: ClaimStageKpi; // Initial status, e.g., "Admitted"
+  // other relevant fields like claimId, policyDetailsId etc.
+}
