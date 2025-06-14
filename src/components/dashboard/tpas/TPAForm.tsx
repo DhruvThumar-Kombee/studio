@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -34,7 +33,8 @@ export function TPAForm({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const defaultValues: TPAFormInput = existingTPA
+  const defaultValues: TPAFormInput = React.useMemo(() => (
+    existingTPA
     ? {
         ...existingTPA,
         email: existingTPA.email || '',
@@ -47,43 +47,51 @@ export function TPAForm({
         email: '',
         mobile: '',
         isActive: true,
-      };
+      }
+  ), [existingTPA]);
 
-  const { control, handleSubmit, formState: { errors }, register, reset } = useForm<TPAFormInput>({
+  const { control, handleSubmit, formState: { errors }, register, reset, watch } = useForm<TPAFormInput>({
     resolver: zodResolver(TPASchema),
     defaultValues,
   });
 
-  const watchedIsActive = control.watch('isActive');
+  const watchedIsActive = watch('isActive');
 
   React.useEffect(() => {
     if (isOpen) {
-      reset(existingTPA ? {
-        ...existingTPA,
-        email: existingTPA.email || '',
-        mobile: existingTPA.mobile || '',
-        address: existingTPA.address || '',
-      } : defaultValues);
+      reset(defaultValues);
     }
-  }, [isOpen, existingTPA, reset, defaultValues]);
+  }, [isOpen, defaultValues, reset]);
 
 
   const onSubmit = async (data: TPAFormInput) => {
     setIsSubmitting(true);
-    let response: ActionResponse<TPA>;
+    let response: ActionResponse<TPA> | undefined = undefined;
 
-    if (existingTPA?.id) {
-      response = await updateTPAAction(existingTPA.id, data);
-    } else {
-      response = await createTPAAction(data);
+    try {
+      if (existingTPA?.id) {
+        response = await updateTPAAction(existingTPA.id, data);
+      } else {
+        response = await createTPAAction(data);
+      }
+    } catch (error) {
+      console.error("Error during TPA action:", error);
+      toast({
+        title: "Action Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
     }
+    
     setIsSubmitting(false);
 
-    if (response.success) {
+    if (response && response.success) {
       toast({ title: "Success", description: response.message });
       onFormSubmitSuccess(); 
       onOpenChange(false); 
-    } else {
+    } else if (response) {
       let errorDescription = response.message || "An unknown error occurred.";
       if (response.errors) {
         const errorMessages = response.errors.map(err => `${err.path.join(' -> ')}: ${err.message}`).join('; ');
@@ -94,6 +102,12 @@ export function TPAForm({
         description: errorDescription,
         variant: "destructive",
         duration: 10000,
+      });
+    } else {
+       toast({
+        title: "Unexpected Issue",
+        description: "The operation completed but the result is unclear. Please check the data or try again.",
+        variant: "destructive",
       });
     }
   };
@@ -171,3 +185,4 @@ export function TPAForm({
     </Dialog>
   );
 }
+

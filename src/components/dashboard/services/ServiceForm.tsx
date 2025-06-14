@@ -4,241 +4,292 @@
 import * as React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
-import { ServiceSchema, type ServiceFormInput, type ActionResponse } from '@/lib/schemas/serviceSchemas';
-import { createServiceAction, updateServiceAction } from '@/actions/serviceMasterActions';
-import type { Service, PriceType } from '@/types';
+import { HospitalSchema, type HospitalFormInput } from '@/lib/schemas/hospitalSchemas';
+import type { Doctor, Service, CommissionType, HospitalDetails, SelectOption } from '@/types';
+import { createHospitalAction, updateHospitalAction } from '@/actions/hospitalActions';
+import type { ActionResponse } from '@/lib/schemas/serviceSchemas';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import { Loader2, Save } from 'lucide-react';
 
-interface ServiceFormProps {
-  service?: Service; 
+interface HospitalFormProps {
+  hospital?: HospitalDetails | null;
+  doctors: Doctor[];
+  services: Service[];
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  onFormSubmitSuccess: () => void; // Callback after successful submission
 }
 
-export function ServiceForm({ service: existingService }: ServiceFormProps) {
-  const router = useRouter();
+export function HospitalForm({
+  hospital: existingHospital,
+  doctors,
+  services,
+  isOpen,
+  onOpenChange,
+  onFormSubmitSuccess,
+}: HospitalFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const defaultSlabValues = { basePrice: 0, baseLimit: 0, additionalPricePerSlab: 0, slabSize: 1 };
+  const doctorOptions: SelectOption[] = doctors.map(doc => ({ value: doc.id, label: doc.name }));
+  const serviceOptions: SelectOption[] = services.map(srv => ({ value: srv.id, label: srv.name }));
 
-  const { control, handleSubmit, watch, formState: { errors }, register, setValue, reset } = useForm<ServiceFormInput>({
-    resolver: zodResolver(ServiceSchema),
-    defaultValues: existingService ? {
-      ...existingService,
-      fixedPrice: existingService.priceType === 'Fixed' ? existingService.fixedPrice : undefined,
-      slabs: existingService.priceType === 'Slab-Based' ? (existingService.slabs || defaultSlabValues) : undefined,
-    } : {
-      name: '',
-      priceType: 'Fixed',
-      fixedPrice: 0,
-      slabs: undefined, 
-      isActive: true,
-    },
+  const defaultValues: HospitalFormInput = React.useMemo(() => (
+    existingHospital
+    ? {
+        ...existingHospital,
+        email: existingHospital.email || '',
+        mobile: existingHospital.mobile || '',
+        address: existingHospital.address || '',
+      }
+    : {
+        name: '',
+        address: '',
+        email: '',
+        mobile: '',
+        assignedDoctorIds: [],
+        associatedServiceIds: [],
+        reference: {
+          name: '',
+          mobile: '',
+          commissionType: 'Fixed',
+          commissionValue: 0,
+        },
+        isActive: true,
+      }
+  ), [existingHospital]);
+
+
+  const { control, handleSubmit, watch, formState: { errors }, register, reset, setValue } = useForm<HospitalFormInput>({
+    resolver: zodResolver(HospitalSchema),
+    defaultValues,
   });
 
-  const priceType = watch('priceType');
+  const commissionType = watch('reference.commissionType');
   const watchedIsActive = watch('isActive');
 
   React.useEffect(() => {
-    // Effect to manage conditional clearing of fields when priceType changes
-    if (priceType === 'Fixed') {
-      setValue('slabs', undefined);
-      // If fixedPrice is undefined (e.g. when switching from slab), set a default
-      if (control._formValues.fixedPrice === undefined) {
-        setValue('fixedPrice', 0);
-      }
-    } else if (priceType === 'Slab-Based') {
-      setValue('fixedPrice', undefined);
-      // If slabs is undefined (e.g. when switching from fixed), set default slab values
-       if (control._formValues.slabs === undefined) {
-        setValue('slabs', defaultSlabValues);
-      }
+    if (isOpen) {
+      reset(defaultValues);
     }
-  }, [priceType, setValue, control._formValues]);
-  
-  React.useEffect(() => {
-    // Reset form when existingService prop changes (e.g., navigating from new to edit)
-    if (existingService) {
-         reset({
-            ...existingService,
-            fixedPrice: existingService.priceType === 'Fixed' ? existingService.fixedPrice : undefined,
-            slabs: existingService.priceType === 'Slab-Based' ? (existingService.slabs || defaultSlabValues) : undefined,
-        });
-    } else {
-        reset({
-            name: '',
-            priceType: 'Fixed',
-            fixedPrice: 0,
-            slabs: undefined,
-            isActive: true,
-        });
-    }
-  }, [existingService, reset]);
+  }, [isOpen, defaultValues, reset]);
 
 
-  const onSubmit = async (data: ServiceFormInput) => {
+  const onSubmit = async (data: HospitalFormInput) => {
     setIsSubmitting(true);
-    let response: ActionResponse<Service>;
+    let response: ActionResponse<HospitalDetails> | undefined = undefined;
 
-    // Ensure only relevant pricing data is sent based on priceType
-    const payload: ServiceFormInput = { ...data };
-    if (data.priceType === 'Fixed') {
-      payload.slabs = undefined;
-    } else if (data.priceType === 'Slab-Based') {
-      payload.fixedPrice = undefined;
-      if (!payload.slabs) payload.slabs = defaultSlabValues; // Ensure slabs object exists if type is Slab-Based
+    try {
+      if (existingHospital?.id) {
+        response = await updateHospitalAction(existingHospital.id, data);
+      } else {
+        response = await createHospitalAction(data);
+      }
+    } catch (error) {
+      console.error("Error during hospital action:", error);
+      toast({
+        title: "Action Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
     }
-
-
-    if (existingService?.id) {
-      response = await updateServiceAction(existingService.id, payload);
-    } else {
-      response = await createServiceAction(payload);
-    }
-
+    
     setIsSubmitting(false);
 
-    if (response.success) {
+    if (response && response.success) {
       toast({ title: "Success", description: response.message });
-      router.push('/dashboard/admin/services');
-      router.refresh(); 
-    } else {
+      onFormSubmitSuccess(); 
+      onOpenChange(false); 
+    } else if (response) {
       let errorDescription = response.message || "An unknown error occurred.";
       if (response.errors) {
         const errorMessages = response.errors.map(err => `${err.path.join(' -> ')}: ${err.message}`).join('; ');
         errorDescription = `${response.message} Details: ${errorMessages}`;
       }
       toast({
-        title: "Error Saving Service",
+        title: `Error ${existingHospital ? 'Updating' : 'Creating'} Hospital`,
         description: errorDescription,
         variant: "destructive",
         duration: 10000,
       });
+    } else {
+      toast({
+        title: "Unexpected Issue",
+        description: "The operation completed but the result is unclear. Please check the data or try again.",
+        variant: "destructive",
+      });
     }
   };
-
+  
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>{existingService ? 'Edit Service' : 'Add New Service'}</CardTitle>
-        <CardDescription>
-          {existingService ? 'Update the details of the existing service.' : 'Fill in the details for the new service.'}
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="name">Service Name <span className="text-destructive">*</span></Label>
-            <Input id="name" {...register('name')} />
-            {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label>Price Type <span className="text-destructive">*</span></Label>
-            <Controller
-              name="priceType"
-              control={control}
-              render={({ field }) => (
-                <RadioGroup
-                  onValueChange={(value) => field.onChange(value as PriceType)}
-                  value={field.value}
-                  className="flex space-x-4"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Fixed" id="priceTypeFixed" />
-                    <Label htmlFor="priceTypeFixed" className="font-normal">Fixed</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Slab-Based" id="priceTypeSlab" />
-                    <Label htmlFor="priceTypeSlab" className="font-normal">Slab-Based</Label>
-                  </div>
-                </RadioGroup>
-              )}
-            />
-            {errors.priceType && <p className="text-sm text-destructive mt-1">{errors.priceType.message}</p>}
-          </div>
-
-          {priceType === 'Fixed' && (
-            <div className="space-y-2">
-              <Label htmlFor="fixedPrice">Fixed Price (₹) <span className="text-destructive">*</span></Label>
-              <Input id="fixedPrice" type="number" {...register('fixedPrice', { valueAsNumber: true, min: 0 })} step="any" />
-              {errors.fixedPrice && <p className="text-sm text-destructive mt-1">{errors.fixedPrice.message}</p>}
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>{existingHospital ? 'Edit Hospital' : 'Add New Hospital'}</DialogTitle>
+          <DialogDescription>
+            {existingHospital ? 'Update the details of the existing hospital.' : 'Fill in the details for the new hospital.'}
+          </DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="flex-grow pr-6 -mr-6">
+          <form id="hospital-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <div className="space-y-1">
+              <Label htmlFor="name">Hospital Name <span className="text-destructive">*</span></Label>
+              <Input id="name" {...register('name')} />
+              {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
             </div>
-          )}
 
-          {priceType === 'Slab-Based' && (
-            <div className="space-y-4 p-4 border rounded-md bg-muted/20">
-              <h4 className="font-medium text-md">Slab Pricing Details <span className="text-destructive">*</span></h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label htmlFor="slabs.basePrice">Base Price (₹)</Label>
-                  <Input id="slabs.basePrice" type="number" {...register('slabs.basePrice', { valueAsNumber: true, min: 0 })} step="any" />
-                  {errors.slabs?.basePrice && <p className="text-sm text-destructive mt-1">{errors.slabs.basePrice.message}</p>}
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="slabs.baseLimit">Base Limit (₹)</Label>
-                  <Input id="slabs.baseLimit" type="number" {...register('slabs.baseLimit', { valueAsNumber: true, min: 0 })} step="any" />
-                  {errors.slabs?.baseLimit && <p className="text-sm text-destructive mt-1">{errors.slabs.baseLimit.message}</p>}
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="slabs.additionalPricePerSlab">Additional Price per Slab (₹)</Label>
-                  <Input id="slabs.additionalPricePerSlab" type="number" {...register('slabs.additionalPricePerSlab', { valueAsNumber: true, min: 0 })} step="any" />
-                  {errors.slabs?.additionalPricePerSlab && <p className="text-sm text-destructive mt-1">{errors.slabs.additionalPricePerSlab.message}</p>}
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="slabs.slabSize">Slab Size (₹)</Label>
-                  <Input id="slabs.slabSize" type="number" {...register('slabs.slabSize', { valueAsNumber: true, min: 1 })} step="any" />
-                  {errors.slabs?.slabSize && <p className="text-sm text-destructive mt-1">{errors.slabs.slabSize.message}</p>}
-                </div>
+            <div className="space-y-1">
+              <Label htmlFor="address">Address</Label>
+              <Input id="address" {...register('address')} />
+              {errors.address && <p className="text-sm text-destructive mt-1">{errors.address.message}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" {...register('email')} />
+                {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
               </div>
-              {errors.slabs && !errors.slabs.basePrice && !errors.slabs.baseLimit && !errors.slabs.additionalPricePerSlab && !errors.slabs.slabSize && errors.slabs.message && (
-                <p className="text-sm text-destructive mt-1">{errors.slabs.message as string}</p>
-              )}
+              <div className="space-y-1">
+                <Label htmlFor="mobile">Mobile</Label>
+                <Input id="mobile" type="tel" {...register('mobile')} />
+                {errors.mobile && <p className="text-sm text-destructive mt-1">{errors.mobile.message}</p>}
+              </div>
             </div>
-          )}
-           {errors.root?.message && <p className="text-sm text-destructive mt-1 text-center">{errors.root.message}</p>}
-           
-          {existingService && ( 
-            <div className="space-y-2 flex items-center pt-2">
+            
+            <div className="space-y-1">
+              <Label htmlFor="assignedDoctorIds">Assigned Doctors</Label>
               <Controller
-                name="isActive"
+                name="assignedDoctorIds"
                 control={control}
                 render={({ field }) => (
-                    <Switch
-                        id="isActive"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="mr-3"
-                    />
+                  <MultiSelect
+                    options={doctorOptions}
+                    selectedValues={field.value || []}
+                    onSelectedValuesChange={field.onChange}
+                    placeholder="Select doctors..."
+                  />
                 )}
               />
-              <Label htmlFor="isActive" className="font-normal">
-                Service is {watchedIsActive ? 'Active' : 'Inactive'}
-              </Label>
+              {errors.assignedDoctorIds && <p className="text-sm text-destructive mt-1">{errors.assignedDoctorIds.message}</p>}
             </div>
-          )}
 
-        </CardContent>
-        <CardFooter className="flex justify-between gap-2 pt-6">
-          <Link href="/dashboard/admin/services" passHref>
-            <Button type="button" variant="outline">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Cancel
-            </Button>
-          </Link>
-          <Button type="submit" disabled={isSubmitting}>
+            <div className="space-y-1">
+              <Label htmlFor="associatedServiceIds">Associated Services</Label>
+               <Controller
+                name="associatedServiceIds"
+                control={control}
+                render={({ field }) => (
+                  <MultiSelect
+                    options={serviceOptions}
+                    selectedValues={field.value || []}
+                    onSelectedValuesChange={field.onChange}
+                    placeholder="Select services..."
+                  />
+                )}
+              />
+              {errors.associatedServiceIds && <p className="text-sm text-destructive mt-1">{errors.associatedServiceIds.message}</p>}
+            </div>
+
+            <fieldset className="space-y-3 p-3 border rounded-md bg-muted/20">
+              <legend className="text-sm font-medium px-1">Reference Details</legend>
+              <div className="space-y-1">
+                <Label htmlFor="reference.name">Reference Name <span className="text-destructive">*</span></Label>
+                <Input id="reference.name" {...register('reference.name')} />
+                {errors.reference?.name && <p className="text-sm text-destructive mt-1">{errors.reference.name.message}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="reference.mobile">Reference Mobile <span className="text-destructive">*</span></Label>
+                <Input id="reference.mobile" {...register('reference.mobile')} />
+                {errors.reference?.mobile && <p className="text-sm text-destructive mt-1">{errors.reference.mobile.message}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label>Commission Type <span className="text-destructive">*</span></Label>
+                <Controller
+                  name="reference.commissionType"
+                  control={control}
+                  render={({ field }) => (
+                    <RadioGroup
+                      onValueChange={(value) => field.onChange(value as CommissionType)}
+                      value={field.value}
+                      className="flex space-x-4 pt-1"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Fixed" id="commissionTypeFixed" />
+                        <Label htmlFor="commissionTypeFixed" className="font-normal">Fixed (₹)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Percentage" id="commissionTypePercentage" />
+                        <Label htmlFor="commissionTypePercentage" className="font-normal">Percentage (%)</Label>
+                      </div>
+                    </RadioGroup>
+                  )}
+                />
+                {errors.reference?.commissionType && <p className="text-sm text-destructive mt-1">{errors.reference.commissionType.message}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="reference.commissionValue">
+                  Commission Value ({commissionType === 'Fixed' ? '₹' : '%'}) <span className="text-destructive">*</span>
+                </Label>
+                <Input 
+                  id="reference.commissionValue" 
+                  type="number" 
+                  {...register('reference.commissionValue', { valueAsNumber: true })} 
+                  step={commissionType === 'Percentage' ? "0.01" : "1"}
+                />
+                {errors.reference?.commissionValue && <p className="text-sm text-destructive mt-1">{errors.reference.commissionValue.message}</p>}
+              </div>
+               {errors.reference && !errors.reference.name && !errors.reference.mobile && !errors.reference.commissionType && !errors.reference.commissionValue && errors.reference.message && (
+                <p className="text-sm text-destructive mt-1">{errors.reference.message as string}</p>
+              )}
+            </fieldset>
+            
+            {errors.root?.message && <p className="text-sm text-destructive mt-1 text-center">{errors.root.message}</p>}
+
+            {existingHospital && (
+              <div className="space-y-2 flex items-center pt-2">
+                <Controller
+                  name="isActive"
+                  control={control}
+                  defaultValue={true}
+                  render={({ field }) => (
+                    <Switch
+                      id="isActive"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      className="mr-3"
+                    />
+                  )}
+                />
+                <Label htmlFor="isActive" className="font-normal">
+                  Hospital is {watchedIsActive ? 'Active' : 'Inactive'}
+                </Label>
+              </div>
+            )}
+          </form>
+        </ScrollArea>
+        <DialogFooter className="pt-4 border-t">
+           <DialogClose asChild>
+            <Button type="button" variant="outline">Cancel</Button>
+          </DialogClose>
+          <Button type="submit" form="hospital-form" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {existingService ? 'Save Changes' : 'Create Service'}
+            {existingHospital ? 'Save Changes' : 'Create Hospital'}
           </Button>
-        </CardFooter>
-      </form>
-    </Card>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
+

@@ -1,8 +1,9 @@
-
 'use client';
 
 import * as React from 'react';
 import type { Service } from '@/types';
+import type { ServiceFormInput } from '@/lib/schemas/serviceSchemas';
+import { getClientServices, toggleClientServiceStatus } from '@/lib/clientServiceManager';
 import {
   Table,
   TableBody,
@@ -14,62 +15,37 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Edit, Eye, EyeOff, Trash2 } from 'lucide-react'; // Added Trash2 for delete conceptual action
+import { MoreHorizontal, Edit, Eye, EyeOff, Trash2 } from 'lucide-react'; // Trash2 for "Deactivate"
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { deleteServiceAction, updateServiceAction } from '@/actions/serviceMasterActions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface ServiceTableProps {
-  services: Service[];
+ // initialServices prop removed, data will be fetched client-side
 }
 
-export function ServiceTable({ services: initialServices }: ServiceTableProps) {
+export function ServiceTable({}: ServiceTableProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [services, setServices] = React.useState<Service[]>(initialServices);
+  const [services, setServices] = React.useState<Service[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
   
-  // State for Deactivate/Delete Dialog (which is essentially deactivation)
-  const [showDeactivateDialog, setShowDeactivateDialog] = React.useState(false);
-  const [serviceToDeactivate, setServiceToDeactivate] = React.useState<Service | null>(null);
-
-  // State for Toggle Active/Inactive Dialog
   const [showToggleStatusDialog, setShowToggleStatusDialog] = React.useState(false);
   const [serviceToToggleStatus, setServiceToToggleStatus] = React.useState<Service | null>(null);
 
+  const fetchAndSetServices = React.useCallback(() => {
+    setIsLoading(true);
+    const data = getClientServices();
+    setServices(data);
+    setIsLoading(false);
+  }, []);
+
   React.useEffect(() => {
-    setServices(initialServices);
-  }, [initialServices]);
+    fetchAndSetServices();
+  }, [fetchAndSetServices]);
 
   const handleEdit = (serviceId: string) => {
     router.push(`/dashboard/admin/services/edit/${serviceId}`);
-  };
-
-  const openDeactivateDialog = (service: Service) => {
-    setServiceToDeactivate(service);
-    setShowDeactivateDialog(true);
-  };
-
-  const confirmDeactivate = async () => {
-    if (!serviceToDeactivate) return;
-
-    // Optimistic update
-    const originalServices = [...services];
-    setServices(prevServices => prevServices.map(s => 
-      s.id === serviceToDeactivate.id ? { ...s, isActive: false } : s
-    ));
-    
-    setShowDeactivateDialog(false);
-    const result = await deleteServiceAction(serviceToDeactivate.id);
-    
-    if (result.success) {
-      toast({ title: "Success", description: result.message });
-      // State already updated optimistically
-    } else {
-      toast({ title: "Error", description: result.message, variant: "destructive" });
-      setServices(originalServices); // Revert on error
-    }
-    setServiceToDeactivate(null);
   };
 
   const openToggleStatusDialog = (service: Service) => {
@@ -77,29 +53,17 @@ export function ServiceTable({ services: initialServices }: ServiceTableProps) {
     setShowToggleStatusDialog(true);
   };
 
-  const confirmToggleStatus = async () => {
+  const confirmToggleStatus = () => {
     if (!serviceToToggleStatus) return;
-
-    const optimisticNewActiveState = !serviceToToggleStatus.isActive;
-    const originalServices = [...services];
-
-    // Optimistic update
-    setServices(prevServices => prevServices.map(s => 
-      s.id === serviceToToggleStatus.id ? { ...s, isActive: optimisticNewActiveState } : s
-    ));
     
+    const updatedService = toggleClientServiceStatus(serviceToToggleStatus.id);
     setShowToggleStatusDialog(false);
-    const result = await updateServiceAction(serviceToToggleStatus.id, { 
-      ...serviceToToggleStatus, // pass all fields for validation
-      isActive: optimisticNewActiveState 
-    });
 
-    if (result.success && result.data) {
-      toast({ title: "Success", description: `Service status updated to ${result.data.isActive ? 'Active' : 'Inactive'}.` });
-      // State already updated optimistically
+    if (updatedService) {
+      toast({ title: "Success", description: `Service status updated to ${updatedService.isActive ? 'Active' : 'Inactive'}.` });
+      fetchAndSetServices(); // Refresh list
     } else {
-      toast({ title: "Error", description: result.message || "Failed to toggle service status.", variant: "destructive" });
-      setServices(originalServices); // Revert on error
+      toast({ title: "Error", description: "Failed to toggle service status or service not found.", variant: "destructive" });
     }
     setServiceToToggleStatus(null);
   };
@@ -118,6 +82,10 @@ export function ServiceTable({ services: initialServices }: ServiceTableProps) {
     }
     return 'N/A';
   };
+
+  if (isLoading) {
+    return <p className="text-muted-foreground text-center py-8">Loading services...</p>;
+  }
 
   if (!services || services.length === 0) {
     return <p className="text-muted-foreground text-center py-8">No services found. Add a new service to get started.</p>;
@@ -165,17 +133,18 @@ export function ServiceTable({ services: initialServices }: ServiceTableProps) {
                       {service.isActive ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
                       {service.isActive ? 'Set Inactive' : 'Set Active'}
                     </DropdownMenuItem>
-                    {service.isActive && ( // Only show "Deactivate" option if service is active
-                      <>
+                    {/* The "Deactivate" action is essentially "Set Inactive" */}
+                    {service.isActive && (
+                        <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                          onClick={() => openDeactivateDialog(service)} 
-                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            onClick={() => openToggleStatusDialog(service)} // Re-using toggle for "Deactivate"
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
                         >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Deactivate
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Deactivate 
                         </DropdownMenuItem>
-                      </>
+                        </>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -185,35 +154,22 @@ export function ServiceTable({ services: initialServices }: ServiceTableProps) {
         </TableBody>
       </Table>
 
-      <AlertDialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to deactivate this service?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Service: "{serviceToDeactivate?.name || ''}"<br/>
-              This will mark the service as inactive. It can be reactivated later.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setServiceToDeactivate(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeactivate} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Deactivate</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <AlertDialog open={showToggleStatusDialog} onOpenChange={setShowToggleStatusDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Confirm Status Change
+              Confirm Status Change: "{serviceToToggleStatus?.name || ''}"
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to set the service "{serviceToToggleStatus?.name || ''}" to {serviceToToggleStatus?.isActive ? 'Inactive' : 'Active'}?
+              Are you sure you want to set this service to {serviceToToggleStatus?.isActive ? 'Inactive' : 'Active'}?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setServiceToToggleStatus(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmToggleStatus}>
+            <AlertDialogAction 
+              onClick={confirmToggleStatus}
+              className={serviceToToggleStatus?.isActive ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground" : ""}
+            >
               {serviceToToggleStatus?.isActive ? 'Set Inactive' : 'Set Active'}
             </AlertDialogAction>
           </AlertDialogFooter>

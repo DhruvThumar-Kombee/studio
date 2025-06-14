@@ -30,10 +30,10 @@ interface EmployeeTableProps {
 export function EmployeeTable({ initialEmployees }: EmployeeTableProps) {
   const { toast } = useToast();
   const [employees, setEmployees] = React.useState<Employee[]>(initialEmployees);
-  
+
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingEmployee, setEditingEmployee] = React.useState<Employee | null>(null);
-  
+
   const [showDeactivateDialog, setShowDeactivateDialog] = React.useState(false);
   const [employeeToDeactivate, setEmployeeToDeactivate] = React.useState<Employee | null>(null);
 
@@ -41,28 +41,28 @@ export function EmployeeTable({ initialEmployees }: EmployeeTableProps) {
   const [employeeToToggleStatus, setEmployeeToToggleStatus] = React.useState<Employee | null>(null);
 
 
-  const refreshEmployees = async () => {
+  const refreshEmployees = React.useCallback(async () => {
     try {
       const updatedEmployees = await getEmployeesAction();
       setEmployees(updatedEmployees);
     } catch (error) {
       toast({ title: "Error", description: "Failed to refresh employee list.", variant: "destructive" });
     }
-  };
+  }, [toast]);
 
   React.useEffect(() => {
     setEmployees(initialEmployees);
   }, [initialEmployees]);
 
-  const handleFormSubmitSuccess = () => {
+  const handleFormSubmitSuccess = React.useCallback(() => {
     refreshEmployees();
-  };
+  }, [refreshEmployees]);
 
   const handleAddNew = () => {
     setEditingEmployee(null);
     setIsFormOpen(true);
   };
-  
+
   const handleEdit = (employee: Employee) => {
     setEditingEmployee(employee);
     setIsFormOpen(true);
@@ -151,7 +151,7 @@ export function EmployeeTable({ initialEmployees }: EmployeeTableProps) {
                 <TableCell>{employee.role}</TableCell>
                 <TableCell className="hidden md:table-cell">{employee.contact || 'N/A'}</TableCell>
                 <TableCell>
-                  <Badge 
+                  <Badge
                     variant={employee.isActive ? 'default' : 'outline'}
                     className={cn(
                         employee.isActive ? 'bg-green-500 hover:bg-green-600 text-white' : 'border-destructive text-destructive'
@@ -181,8 +181,8 @@ export function EmployeeTable({ initialEmployees }: EmployeeTableProps) {
                       {employee.isActive && ( // Only show Deactivate if employee is active
                         <>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => openDeactivateDialog(employee)} 
+                          <DropdownMenuItem
+                            onClick={() => openDeactivateDialog(employee)}
                             className="text-destructive focus:text-destructive focus:bg-destructive/10"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />

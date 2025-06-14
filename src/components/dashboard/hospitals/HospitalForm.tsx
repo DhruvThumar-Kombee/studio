@@ -43,7 +43,8 @@ export function HospitalForm({
   const doctorOptions: SelectOption[] = doctors.map(doc => ({ value: doc.id, label: doc.name }));
   const serviceOptions: SelectOption[] = services.map(srv => ({ value: srv.id, label: srv.name }));
 
-  const defaultValues: HospitalFormInput = existingHospital
+  const defaultValues: HospitalFormInput = React.useMemo(() => (
+    existingHospital
     ? {
         ...existingHospital,
         email: existingHospital.email || '',
@@ -64,7 +65,9 @@ export function HospitalForm({
           commissionValue: 0,
         },
         isActive: true,
-      };
+      }
+  ), [existingHospital]);
+
 
   const { control, handleSubmit, watch, formState: { errors }, register, reset, setValue } = useForm<HospitalFormInput>({
     resolver: zodResolver(HospitalSchema),
@@ -76,32 +79,39 @@ export function HospitalForm({
 
   React.useEffect(() => {
     if (isOpen) {
-      reset(existingHospital ? {
-        ...existingHospital,
-        email: existingHospital.email || '',
-        mobile: existingHospital.mobile || '',
-        address: existingHospital.address || '',
-      } : defaultValues);
+      reset(defaultValues);
     }
-  }, [isOpen, existingHospital, reset, defaultValues]);
+  }, [isOpen, defaultValues, reset]);
 
 
   const onSubmit = async (data: HospitalFormInput) => {
     setIsSubmitting(true);
-    let response: ActionResponse<HospitalDetails>;
+    let response: ActionResponse<HospitalDetails> | undefined = undefined;
 
-    if (existingHospital?.id) {
-      response = await updateHospitalAction(existingHospital.id, data);
-    } else {
-      response = await createHospitalAction(data);
+    try {
+      if (existingHospital?.id) {
+        response = await updateHospitalAction(existingHospital.id, data);
+      } else {
+        response = await createHospitalAction(data);
+      }
+    } catch (error) {
+      console.error("Error during hospital action:", error);
+      toast({
+        title: "Action Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
     }
+    
     setIsSubmitting(false);
 
-    if (response.success) {
+    if (response && response.success) {
       toast({ title: "Success", description: response.message });
-      onFormSubmitSuccess(); // Call the success callback
-      onOpenChange(false); // Close dialog
-    } else {
+      onFormSubmitSuccess(); 
+      onOpenChange(false); 
+    } else if (response) {
       let errorDescription = response.message || "An unknown error occurred.";
       if (response.errors) {
         const errorMessages = response.errors.map(err => `${err.path.join(' -> ')}: ${err.message}`).join('; ');
@@ -112,6 +122,12 @@ export function HospitalForm({
         description: errorDescription,
         variant: "destructive",
         duration: 10000,
+      });
+    } else {
+      toast({
+        title: "Unexpected Issue",
+        description: "The operation completed but the result is unclear. Please check the data or try again.",
+        variant: "destructive",
       });
     }
   };
@@ -276,3 +292,4 @@ export function HospitalForm({
     </Dialog>
   );
 }
+

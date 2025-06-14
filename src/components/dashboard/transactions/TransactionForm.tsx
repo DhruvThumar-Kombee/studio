@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, AlertCircle } from 'lucide-react';
-import { Alert, AlertTitle as ShadAlertTitle, AlertDescription as ShadAlertDescription } from "@/components/ui/alert"; // Renamed to avoid conflict
+import { Alert, AlertTitle as ShadAlertTitle, AlertDescription as ShadAlertDescription } from "@/components/ui/alert"; 
 
 interface TransactionFormProps {
   transaction?: Transaction | null;
@@ -29,12 +29,12 @@ interface TransactionFormProps {
   onFormSubmitSuccess: () => void; 
 }
 
-const initialActionState: ActionResponse<Transaction> = { success: false, message: "" };
+const initialActionState: ActionResponse<Transaction | null > = { success: false, message: "", data: null, errors: [] };
 
-function SubmitButton({ isEditing }: { isEditing: boolean }) {
+function SubmitButton({ isEditing, formId }: { isEditing: boolean, formId: string }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
+    <Button type="submit" form={formId} disabled={pending}>
       {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
       {isEditing ? 'Save Changes' : 'Create Transaction'}
     </Button>
@@ -55,10 +55,11 @@ export function TransactionForm({
   const [state, formAction] = useActionState(action, initialActionState);
 
 
-  const defaultValues: TransactionFormInput = existingTransaction
+  const defaultValues: TransactionFormInput = React.useMemo(() => (
+    existingTransaction
     ? {
         ...existingTransaction,
-        date: new Date(existingTransaction.date), // Ensure date is a Date object
+        date: new Date(existingTransaction.date), 
       }
     : {
         type: 'Expense',
@@ -66,7 +67,8 @@ export function TransactionForm({
         amount: 0,
         description: '',
         category: '',
-      };
+      }
+  ), [existingTransaction]);
 
   const { control, handleSubmit, formState: { errors }, register, reset, watch } = useForm<TransactionFormInput>({
     resolver: zodResolver(TransactionSchema),
@@ -74,21 +76,13 @@ export function TransactionForm({
   });
   
   const transactionType = watch('type');
+  const formId = `transaction-form-${existingTransaction?.id || 'new'}`;
 
   React.useEffect(() => {
     if (isOpen) {
-      reset(existingTransaction ? {
-        ...existingTransaction,
-        date: new Date(existingTransaction.date),
-      } : {
-        type: 'Expense',
-        date: new Date(),
-        amount: 0,
-        description: '',
-        category: '',
-      });
+      reset(defaultValues);
     }
-  }, [isOpen, existingTransaction, reset]);
+  }, [isOpen, reset, defaultValues]);
 
   React.useEffect(() => {
     if(state.success){
@@ -122,7 +116,9 @@ export function TransactionForm({
         formData.append(key, String(value));
       }
     });
-    formAction(formData);
+    React.startTransition(() => {
+      formAction(formData);
+    });
   };
   
   return (
@@ -135,7 +131,7 @@ export function TransactionForm({
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="flex-grow pr-6 -mr-6">
-          <form id={`transaction-form-${existingTransaction?.id || 'new'}`} onSubmit={handleSubmit(processForm)} className="space-y-4 py-4">
+          <form id={formId} onSubmit={handleSubmit(processForm)} className="space-y-4 py-4">
             <div className="space-y-1">
               <Label>Type <span className="text-destructive">*</span></Label>
               <Controller
@@ -170,7 +166,7 @@ export function TransactionForm({
                       date={field.value} 
                       setDate={field.onChange}
                       placeholder="Select transaction date"
-                      disabled={(d) => d > new Date()} // Cannot select future dates
+                      disabled={(d) => d > new Date()} 
                     />
                   )}
                 />
@@ -181,7 +177,7 @@ export function TransactionForm({
                 <Input 
                   id={`amount-${existingTransaction?.id || 'new'}`} 
                   type="number" 
-                  {...register('amount')} 
+                  {...register('amount', { valueAsNumber: true })} 
                   step="0.01"
                   placeholder="e.g., 1000.50"
                 />
@@ -229,7 +225,7 @@ export function TransactionForm({
            <DialogClose asChild>
             <Button type="button" variant="outline">Cancel</Button>
           </DialogClose>
-          <SubmitButton isEditing={!!existingTransaction} />
+          <SubmitButton isEditing={!!existingTransaction} formId={formId} />
         </DialogFooter>
       </DialogContent>
     </Dialog>

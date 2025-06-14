@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -8,8 +9,9 @@ import type { Employee, EmployeeRole } from '@/types';
 import { EmployeeRoles } from '@/types'; // Import the roles array
 import { createEmployeeAction, updateEmployeeAction } from '@/actions/employeeActions';
 import type { ActionResponse } from '@/lib/schemas/serviceSchemas';
-import { useFormStatus } from 'react-dom';
 import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
+
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,15 +28,15 @@ interface EmployeeFormProps {
   employee?: Employee | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onFormSubmitSuccess: () => void; 
+  onFormSubmitSuccess: () => void;
 }
 
-const initialActionState: ActionResponse<Employee> = { success: false, message: "" };
+const initialActionState: ActionResponse<Employee | null> = { success: false, message: "", data: null };
 
-function SubmitButton({ isEditing }: { isEditing: boolean }) {
+function SubmitButton({ isEditing, formId }: { isEditing: boolean, formId: string }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
+    <Button type="submit" form={formId} disabled={pending}>
       {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
       {isEditing ? 'Save Changes' : 'Create Employee'}
     </Button>
@@ -48,44 +50,47 @@ export function EmployeeForm({
   onFormSubmitSuccess,
 }: EmployeeFormProps) {
   const { toast } = useToast();
-  
-  const action = existingEmployee?.id 
-    ? updateEmployeeAction.bind(null, existingEmployee.id) 
+
+  const action = existingEmployee?.id
+    ? updateEmployeeAction.bind(null, existingEmployee.id)
     : createEmployeeAction;
   const [state, formAction] = useActionState(action, initialActionState);
 
-  const defaultValues: EmployeeFormInput = existingEmployee
-    ? {
-        name: existingEmployee.name,
-        role: existingEmployee.role,
-        contact: existingEmployee.contact || '',
-        isActive: existingEmployee.isActive,
-      }
-    : {
-        name: '',
-        role: EmployeeRoles[0], // Default to the first role
-        contact: '',
-        isActive: true,
-      };
+  const defaultValues = React.useMemo<EmployeeFormInput>(() => {
+    return existingEmployee
+      ? {
+          name: existingEmployee.name,
+          role: existingEmployee.role,
+          contact: existingEmployee.contact || '',
+          isActive: existingEmployee.isActive,
+        }
+      : {
+          name: '',
+          role: EmployeeRoles[0], // Default to the first role
+          contact: '',
+          isActive: true,
+        };
+  }, [existingEmployee]);
 
   const { control, handleSubmit, formState: { errors }, register, reset, watch } = useForm<EmployeeFormInput>({
     resolver: zodResolver(EmployeeSchema),
     defaultValues,
   });
-  
+
   const watchedIsActive = watch('isActive');
+  const formId = `employee-form-${existingEmployee?.id || 'new'}`;
 
   React.useEffect(() => {
     if (isOpen) {
       reset(defaultValues);
     }
-  }, [isOpen, existingEmployee, reset, defaultValues]);
+  }, [isOpen, reset, defaultValues]);
 
   React.useEffect(() => {
     if (state.success) {
         toast({ title: "Success", description: state.message });
-        onFormSubmitSuccess(); 
-        onOpenChange(false); 
+        onFormSubmitSuccess();
+        onOpenChange(false);
     } else if (state.message && !state.success && state.errors) {
         const errorDetails = state.errors.map(err => `${err.path.join('.')}: ${err.message}`).join('; ');
         toast({
@@ -108,12 +113,14 @@ export function EmployeeForm({
     formData.append('name', data.name);
     formData.append('role', data.role);
     if (data.contact) formData.append('contact', data.contact);
-    if (existingEmployee) { // Only include isActive for updates
+    if (existingEmployee) {
       formData.append('isActive', String(data.isActive));
     }
-    formAction(formData);
+    React.startTransition(() => {
+      formAction(formData);
+    });
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px] max-h-[90vh] flex flex-col">
@@ -124,26 +131,26 @@ export function EmployeeForm({
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="flex-grow pr-6 -mr-6">
-          <form id={`employee-form-${existingEmployee?.id || 'new'}`} onSubmit={handleSubmit(processForm)} className="space-y-4 py-4">
-            
+          <form id={formId} onSubmit={handleSubmit(processForm)} className="space-y-4 py-4">
+
             <div className="space-y-1">
-              <Label htmlFor={`name-${existingEmployee?.id || 'new'}`}>Full Name <span className="text-destructive">*</span></Label>
-              <Input 
-                id={`name-${existingEmployee?.id || 'new'}`} 
-                {...register('name')} 
+              <Label htmlFor={`name-${formId}`}>Full Name <span className="text-destructive">*</span></Label>
+              <Input
+                id={`name-${formId}`}
+                {...register('name')}
                 placeholder="e.g., John Doe"
               />
               {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor={`role-${existingEmployee?.id || 'new'}`}>Role <span className="text-destructive">*</span></Label>
+              <Label htmlFor={`role-${formId}`}>Role <span className="text-destructive">*</span></Label>
               <Controller
                 name="role"
                 control={control}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger id={`role-${existingEmployee?.id || 'new'}`}>
+                    <SelectTrigger id={`role-${formId}`}>
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -156,17 +163,17 @@ export function EmployeeForm({
               />
               {errors.role && <p className="text-sm text-destructive mt-1">{errors.role.message}</p>}
             </div>
-            
+
             <div className="space-y-1">
-              <Label htmlFor={`contact-${existingEmployee?.id || 'new'}`}>Contact (Phone/Email)</Label>
-              <Input 
-                id={`contact-${existingEmployee?.id || 'new'}`}
-                {...register('contact')} 
+              <Label htmlFor={`contact-${formId}`}>Contact (Phone/Email)</Label>
+              <Input
+                id={`contact-${formId}`}
+                {...register('contact')}
                 placeholder="e.g., 9876543210 or john.doe@example.com"
               />
               {errors.contact && <p className="text-sm text-destructive mt-1">{errors.contact.message}</p>}
             </div>
-            
+
             {existingEmployee && (
               <div className="space-y-2 flex items-center pt-2">
                 <Controller
@@ -174,19 +181,19 @@ export function EmployeeForm({
                   control={control}
                   render={({ field }) => (
                     <Switch
-                      id={`isActive-${existingEmployee.id}`}
+                      id={`isActive-${formId}`}
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       className="mr-3"
                     />
                   )}
                 />
-                <Label htmlFor={`isActive-${existingEmployee.id}`} className="font-normal">
+                <Label htmlFor={`isActive-${formId}`} className="font-normal">
                   Employee is {watchedIsActive ? 'Active' : 'Inactive'}
                 </Label>
               </div>
             )}
-            
+
             {state?.errors && !state.success && (
                 <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -207,7 +214,7 @@ export function EmployeeForm({
            <DialogClose asChild>
             <Button type="button" variant="outline">Cancel</Button>
           </DialogClose>
-          <SubmitButton isEditing={!!existingEmployee} />
+          <SubmitButton isEditing={!!existingEmployee} formId={formId} />
         </DialogFooter>
       </DialogContent>
     </Dialog>

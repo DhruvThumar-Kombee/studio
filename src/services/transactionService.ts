@@ -1,4 +1,3 @@
-
 'use server';
 import type { Transaction, TransactionType, BalanceSummary } from '@/types';
 import { TransactionFormInput } from '@/lib/schemas/transactionSchemas';
@@ -9,7 +8,11 @@ let transactionsDB: Transaction[] = JSON.parse(JSON.stringify(mockTransactions))
 
 export async function getAllTransactions(): Promise<Transaction[]> {
   await new Promise(resolve => setTimeout(resolve, 200)); // Simulate API delay
-  return JSON.parse(JSON.stringify(transactionsDB.sort((a, b) => b.date.getTime() - a.date.getTime()))); // Sort by date descending
+  return JSON.parse(JSON.stringify(transactionsDB.sort((a, b) => {
+    const dateA = a.date instanceof Date ? a.date : new Date(a.date);
+    const dateB = b.date instanceof Date ? b.date : new Date(b.date);
+    return dateB.getTime() - dateA.getTime();
+  })));
 }
 
 export async function addTransaction(transactionData: Omit<Transaction, 'id'>): Promise<Transaction> {
