@@ -34,6 +34,8 @@ export default function AdminDashboardPage() {
   const inProcessClaims = claims.filter(claim => inProcessStages.includes(claim.claimStage)).length;
   
   const hospitalCount = hospitals.length;
+  
+  const kpiClaimStages: ClaimStageKpi[] = ["Admitted", "Discharged", "Submitted", "Received", "Settled"];
 
   const claimStageData = useMemo(() => {
     const counts: Record<ClaimStageKpi, number> = {
@@ -51,7 +53,6 @@ export default function AdminDashboardPage() {
     return kpiClaimStages.map(stage => ({ name: stage, value: counts[stage] })) as ClaimStageData[];
   }, [claims]);
   
-  const kpiClaimStages: ClaimStageKpi[] = ["Admitted", "Discharged", "Submitted", "Received", "Settled"];
 
 
   if (claims.length === 0) {
