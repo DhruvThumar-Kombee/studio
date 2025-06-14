@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { 
   Home, UserCircle, Settings, ShieldCheck, Building, Users, FileText, 
-  BarChart3, Loader2, ListChecks, Building2, ShieldAlert, FilePlus, LogOut as LogOutIcon, Sticker, FileSpreadsheet, Landmark
+  BarChart3, Loader2, ListChecks, Building2, ShieldAlert, FilePlus, LogOut as LogOutIcon, Sticker, FileSpreadsheet, Landmark, Users2
 } from 'lucide-react'; 
 import { LogoutButton } from '@/components/LogoutButton';
 
@@ -55,6 +55,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         '/dashboard/admin/hospital-bills',
         '/dashboard/admin/reports',
         '/dashboard/admin/transactions',
+        '/dashboard/admin/employees', // New
         roleDashboardPaths['staff'], 
         '/dashboard/staff/admissions/new',
         '/dashboard/staff/discharge/new',
@@ -70,6 +71,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         '/dashboard/admin/hospital-bills',
         '/dashboard/admin/reports',
         '/dashboard/admin/transactions',
+        '/dashboard/admin/employees', // New
         roleDashboardPaths['staff'], 
         '/dashboard/staff/admissions/new',
         '/dashboard/staff/discharge/new',
@@ -121,8 +123,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               pathname.startsWith('/dashboard/admin/hospitals/') ||
               pathname.startsWith('/dashboard/admin/tpas/') ||
               pathname.startsWith('/dashboard/admin/hospital-bills') ||
-              pathname.startsWith('/dashboard/admin/transactions') || // Added transactions
-              pathname.startsWith('/dashboard/admin/reports')) { 
+              pathname.startsWith('/dashboard/admin/transactions') || 
+              pathname.startsWith('/dashboard/admin/reports') ||
+              pathname.startsWith('/dashboard/admin/employees') // New
+            ) { 
              isNestedPathAllowed = true;
           }
       }
@@ -149,6 +153,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <>
             <SidebarLink href="/dashboard/super-admin" icon={ShieldCheck}>Super Admin</SidebarLink>
             <SidebarLink href="/dashboard/admin" icon={Settings}>Admin Mgmt</SidebarLink>
+            <SidebarLink href="/dashboard/admin/employees" icon={Users2}>Employees</SidebarLink>
             <SidebarLink href="/dashboard/admin/services" icon={ListChecks}>Service Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/hospitals" icon={Building2}>Hospital Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/tpas" icon={ShieldAlert}>TPA Master</SidebarLink>
@@ -166,6 +171,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         return (
           <>
             <SidebarLink href="/dashboard/admin" icon={Settings}>Admin Panel</SidebarLink>
+            <SidebarLink href="/dashboard/admin/employees" icon={Users2}>Employees</SidebarLink>
             <SidebarLink href="/dashboard/admin/services" icon={ListChecks}>Service Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/hospitals" icon={Building2}>Hospital Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/tpas" icon={ShieldAlert}>TPA Master</SidebarLink>
@@ -220,4 +226,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
-

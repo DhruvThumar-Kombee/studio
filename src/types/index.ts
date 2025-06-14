@@ -229,8 +229,8 @@ export interface ClaimReportItem {
   admissionDate: string; // Formatted
   claimStage: string;
   policyNumber?: string;
-  totalAmount?: number; // Example field, may vary
-  tpaName?: string;
+  // totalAmount?: number; // Example field, may vary
+  // tpaName?: string;
 }
 
 // General Action Response for reports
@@ -258,4 +258,20 @@ export interface BalanceSummary {
   totalIncome: number;
   totalExpenses: number;
   netBalance: number;
+}
+
+// Employee Management Types
+export const EmployeeRoles = ["Doctor", "Nurse", "Receptionist", "Admin Staff", "Accountant", "Other"] as const;
+export type EmployeeRole = typeof EmployeeRoles[number];
+
+export interface Employee {
+  id: string;
+  name: string;
+  role: EmployeeRole;
+  contact?: string; // Can be phone or email
+  isActive: boolean;
+}
+
+export interface EmployeeFormInput extends Omit<Employee, 'id' | 'isActive'> {
+  isActive?: boolean; // isActive is optional during creation, defaults to true
 }

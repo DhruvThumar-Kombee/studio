@@ -1,5 +1,6 @@
 
-import type { Hospital, ClaimStatus, Service, Doctor, HospitalDetails, HospitalReferenceDetails, TPA, Transaction, TransactionType } from '@/types';
+import type { Hospital, ClaimStatus, Service, Doctor, HospitalDetails, HospitalReferenceDetails, TPA, Transaction, TransactionType, Employee, EmployeeRole } from '@/types';
+import { EmployeeRoles } from '@/types';
 
 export const hospitals: Hospital[] = [
   { id: 'hosp1', name: 'General Hospital' },
@@ -182,4 +183,12 @@ export const mockTransactions: Transaction[] = [
     { id: 'txn6', type: 'Income', date: new Date('2024-05-02'), amount: 75000, description: 'Hospital Partnership Payment', category: 'Partnerships' },
     { id: 'txn7', type: 'Expense', date: new Date('2024-05-08'), amount: 3000, description: 'Software Subscription - CRM', category: 'Software & Tools' },
     { id: 'txn8', type: 'Income', date: new Date('2024-05-15'), amount: 10000, description: 'Miscellaneous Income', category: 'Other Income' },
+];
+
+export const mockEmployees: Employee[] = [
+  { id: 'emp1', name: 'Dr. Alice Wonderland', role: 'Doctor', contact: '9876543210', isActive: true },
+  { id: 'emp2', name: 'Nurse Bob The Builder', role: 'Nurse', contact: 'bob.nurse@example.com', isActive: true },
+  { id: 'emp3', name: 'Charlie Brown (Reception)', role: 'Receptionist', contact: '9876512345', isActive: true },
+  { id: 'emp4', name: 'Diana Prince (Admin)', role: 'Admin Staff', contact: 'diana.admin@example.com', isActive: true },
+  { id: 'emp5', name: 'Edward Scissorhands (Accounts)', role: 'Accountant', contact: '9876554321', isActive: false },
 ];
