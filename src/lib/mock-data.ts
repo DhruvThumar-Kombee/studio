@@ -1,5 +1,5 @@
 
-import type { Hospital, ClaimStatus, Service, Doctor, HospitalDetails, HospitalReferenceDetails, TPA } from '@/types';
+import type { Hospital, ClaimStatus, Service, Doctor, HospitalDetails, HospitalReferenceDetails, TPA, Transaction, TransactionType } from '@/types';
 
 export const hospitals: Hospital[] = [
   { id: 'hosp1', name: 'General Hospital' },
@@ -171,4 +171,15 @@ export const mockTPAs: TPA[] = [
   { id: 'tpa3', name: 'Family Health Plan TPA', address: '30 Care Ave, Supportville', mobile: '9876500003', email: 'support@fhpltpa.com', isActive: false },
   { id: 'tpa4', name: 'Vipul Medcorp TPA', address: '40 Corporate Blvd, Businesston', mobile: '9876500004', email: 'admin@vipulmedtpa.in', isActive: true },
   { id: 'tpa5', name: 'Paramount Health Services & Insurance TPA', address: '50 Trust Circle, Reliability Park', mobile: '9876500005', email: 'claims@paramounttpa.com', isActive: true },
+];
+
+export const mockTransactions: Transaction[] = [
+    { id: 'txn1', type: 'Income', date: new Date('2024-04-01'), amount: 50000, description: 'Consultation Fees Q1', category: 'Service Revenue' },
+    { id: 'txn2', type: 'Expense', date: new Date('2024-04-05'), amount: 15000, description: 'Office Supplies', category: 'Operational Costs' },
+    { id: 'txn3', type: 'Income', date: new Date('2024-04-10'), amount: 25000, description: 'TPA Payout Batch A', category: 'TPA Settlements' },
+    { id: 'txn4', type: 'Expense', date: new Date('2024-04-15'), amount: 5000, description: 'Utility Bills - Electricity', category: 'Utilities' },
+    { id: 'txn5', type: 'Expense', date: new Date('2024-04-20'), amount: 12000, description: 'Salaries - April Part 1', category: 'Payroll' },
+    { id: 'txn6', type: 'Income', date: new Date('2024-05-02'), amount: 75000, description: 'Hospital Partnership Payment', category: 'Partnerships' },
+    { id: 'txn7', type: 'Expense', date: new Date('2024-05-08'), amount: 3000, description: 'Software Subscription - CRM', category: 'Software & Tools' },
+    { id: 'txn8', type: 'Income', date: new Date('2024-05-15'), amount: 10000, description: 'Miscellaneous Income', category: 'Other Income' },
 ];

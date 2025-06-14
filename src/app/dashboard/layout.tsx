@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { 
   Home, UserCircle, Settings, ShieldCheck, Building, Users, FileText, 
-  BarChart3, Loader2, ListChecks, Building2, ShieldAlert, FilePlus, LogOut as LogOutIcon, Sticker, FileSpreadsheet
+  BarChart3, Loader2, ListChecks, Building2, ShieldAlert, FilePlus, LogOut as LogOutIcon, Sticker, FileSpreadsheet, Landmark
 } from 'lucide-react'; 
 import { LogoutButton } from '@/components/LogoutButton';
 
@@ -53,7 +53,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         '/dashboard/admin/hospitals',
         '/dashboard/admin/tpas',
         '/dashboard/admin/hospital-bills',
-        '/dashboard/admin/reports', // Added for Super Admin
+        '/dashboard/admin/reports',
+        '/dashboard/admin/transactions',
         roleDashboardPaths['staff'], 
         '/dashboard/staff/admissions/new',
         '/dashboard/staff/discharge/new',
@@ -67,7 +68,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         '/dashboard/admin/hospitals',
         '/dashboard/admin/tpas',
         '/dashboard/admin/hospital-bills',
-        '/dashboard/admin/reports', // Added for Admin
+        '/dashboard/admin/reports',
+        '/dashboard/admin/transactions',
         roleDashboardPaths['staff'], 
         '/dashboard/staff/admissions/new',
         '/dashboard/staff/discharge/new',
@@ -119,6 +121,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               pathname.startsWith('/dashboard/admin/hospitals/') ||
               pathname.startsWith('/dashboard/admin/tpas/') ||
               pathname.startsWith('/dashboard/admin/hospital-bills') ||
+              pathname.startsWith('/dashboard/admin/transactions') || // Added transactions
               pathname.startsWith('/dashboard/admin/reports')) { 
              isNestedPathAllowed = true;
           }
@@ -149,6 +152,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <SidebarLink href="/dashboard/admin/services" icon={ListChecks}>Service Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/hospitals" icon={Building2}>Hospital Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/tpas" icon={ShieldAlert}>TPA Master</SidebarLink>
+            <SidebarLink href="/dashboard/admin/transactions" icon={Landmark}>Transactions</SidebarLink>
             <SidebarLink href="/dashboard/admin/hospital-bills" icon={FileSpreadsheet}>Hospital Bills</SidebarLink>
             <SidebarLink href="/dashboard/admin/reports" icon={BarChart3}>Reports</SidebarLink>
             <SidebarLink href="/dashboard/staff" icon={Users}>Staff Mgmt</SidebarLink>
@@ -165,6 +169,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <SidebarLink href="/dashboard/admin/services" icon={ListChecks}>Service Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/hospitals" icon={Building2}>Hospital Master</SidebarLink>
             <SidebarLink href="/dashboard/admin/tpas" icon={ShieldAlert}>TPA Master</SidebarLink>
+            <SidebarLink href="/dashboard/admin/transactions" icon={Landmark}>Transactions</SidebarLink>
             <SidebarLink href="/dashboard/admin/hospital-bills" icon={FileSpreadsheet}>Hospital Bills</SidebarLink>
             <SidebarLink href="/dashboard/admin/reports" icon={BarChart3}>Reports</SidebarLink>
             <SidebarLink href="/dashboard/staff" icon={Users}>Staff View</SidebarLink>

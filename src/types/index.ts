@@ -242,3 +242,20 @@ export interface ReportActionResponse<T = any> {
   errors?: z.ZodIssue[];
 }
 
+// Transaction (Expense/Income) Module Types
+export type TransactionType = 'Expense' | 'Income';
+
+export interface Transaction {
+  id: string;
+  type: TransactionType;
+  date: Date;
+  amount: number;
+  description: string;
+  category?: string; // Optional: For more detailed tracking
+}
+
+export interface BalanceSummary {
+  totalIncome: number;
+  totalExpenses: number;
+  netBalance: number;
+}
