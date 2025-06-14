@@ -27,13 +27,14 @@ const hospitals: Hospital[] = [
 ];
 
 const mockClaimsData: (ClaimStatus & SearchParams)[] = [
-  { hospitalId: 'hosp1', claimNumber: '12345', claimStage: 'Processed', statusDate: '2023-10-15', referenceNo: 'REF001', patientName: 'Alice Johnson' },
-  { hospitalId: 'hosp2', policyNumber: 'POL9876', claimStage: 'Pending Review', statusDate: '2023-11-01', referenceNo: 'REF002', patientName: 'Bob Williams' },
-  { hospitalId: 'hosp1', patientName: 'John Doe', claimStage: 'Approved', statusDate: '2023-09-20', referenceNo: 'REF003' },
-  { hospitalId: 'hosp3', patientName: 'Jane Smith', claimStage: 'Information Requested', statusDate: '2023-11-05', referenceNo: 'REF004' },
+  { hospitalId: 'hosp1', claimNumber: '12345', claimStage: 'Settled', statusDate: '2023-10-15', referenceNo: 'REF001', patientName: 'Alice Johnson' },
+  { hospitalId: 'hosp2', policyNumber: 'POL9876', claimStage: 'In Review', statusDate: '2023-11-01', referenceNo: 'REF002', patientName: 'Bob Williams' },
+  { hospitalId: 'hosp1', patientName: 'John Doe', claimStage: 'Admitted', statusDate: '2023-09-20', referenceNo: 'REF003' },
+  { hospitalId: 'hosp3', patientName: 'Jane Smith', claimStage: 'Discharged', statusDate: '2023-11-05', referenceNo: 'REF004' },
   { hospitalId: 'hosp1', policyNumber: 'POL123XYZ', claimStage: 'Denied', statusDate: '2023-10-25', referenceNo: 'REF005', patientName: 'Carol White' },
-  { hospitalId: 'hosp4', claimNumber: '67890', claimStage: 'Submitted', statusDate: '2023-11-10', referenceNo: 'REF006', patientName: 'David Brown' },
-  { hospitalId: 'hosp5', patientName: 'johnathan doe', claimStage: 'Completed', statusDate: '2023-08-01', referenceNo: 'REF007'},
+  { hospitalId: 'hosp4', claimNumber: '67890', claimStage: 'File Submitted', statusDate: '2023-11-10', referenceNo: 'REF006', patientName: 'David Brown' },
+  { hospitalId: 'hosp5', patientName: 'johnathan doe', claimStage: 'Settled', statusDate: '2023-08-01', referenceNo: 'REF007'},
+  { hospitalId: 'hosp2', claimNumber: '54321', claimStage: 'Information Requested', statusDate: '2023-11-12', referenceNo: 'REF008', patientName: 'Eva Green' },
 ];
 
 const searchSchema = z.object({
@@ -49,7 +50,7 @@ const searchSchema = z.object({
   }),
 }).refine(data => !!data.claimNumber || !!data.policyNumber || !!data.patientName, {
   message: 'Please fill at least one identifier: Claim No, Policy No, or Patient Name.',
-  path: ['claimNumber'], // This error will be shown under claimNumber, or can be handled globally
+  path: ['claimNumber'], 
 });
 
 async function mockApiSearch(params: SearchParams): Promise<ClaimStatus | null> {
@@ -67,7 +68,6 @@ async function mockApiSearch(params: SearchParams): Promise<ClaimStatus | null> 
           c => c.hospitalId === hospitalId && c.policyNumber === policyNumber
         );
       } else if (patientName) {
-        // Fuzzy match for patient name (case-insensitive, partial)
         const lowerPatientName = patientName.toLowerCase();
         foundClaim = mockClaimsData.find(
           c => c.hospitalId === hospitalId && c.patientName?.toLowerCase().includes(lowerPatientName)
@@ -80,7 +80,7 @@ async function mockApiSearch(params: SearchParams): Promise<ClaimStatus | null> 
       } else {
         resolve(null);
       }
-    }, 1500); // Simulate network delay
+    }, 1500); 
   });
 }
 
@@ -101,7 +101,7 @@ export function ClaimSearchForm() {
     mode: 'onChange', 
   });
 
-  const { control, handleSubmit, reset, watch, formState, getValues, setError, clearErrors } = form;
+  const { control, handleSubmit, reset, watch, formState, setError, clearErrors } = form;
   const { errors } = formState;
 
   const hospitalIdValue = watch('hospitalId');
@@ -112,17 +112,20 @@ export function ClaimSearchForm() {
   const isAnyIdentifierFilled = !!claimNumberValue || !!policyNumberValue || !!patientNameValue;
   
   const onSubmit = async (data: SearchFormValues) => {
-    clearErrors("root"); // Clear global error if any
-    if (!isAnyIdentifierFilled) {
-      // This check is also in Zod, but good for explicit UI handling if needed
-       setError("root.custom", { type: "custom", message: "Please fill at least one identifier." });
-       toast({
-        title: "Missing Information",
-        description: "Please fill at least one identifier: Claim No, Policy No, or Patient Name.",
-        variant: "destructive",
-      });
-      return;
+    clearErrors("root"); 
+    if (!isAnyIdentifierFilled && !errors.claimNumber && !errors.policyNumber && !errors.patientName && !errors.hospitalId) {
+       const zodError = searchSchema.safeParse(data);
+       if (!zodError.success && zodError.error.issues.some(issue => issue.message === 'Please fill at least one identifier: Claim No, Policy No, or Patient Name.')) {
+         setError("root.custom", { type: "custom", message: "Please fill at least one identifier: Claim No, Policy No, or Patient Name." });
+         toast({
+            title: "Missing Information",
+            description: "Please fill at least one identifier: Claim No, Policy No, or Patient Name.",
+            variant: "destructive",
+          });
+         return;
+       }
     }
+
 
     setIsLoading(true);
     setSearchResults(null);
@@ -135,14 +138,13 @@ export function ClaimSearchForm() {
       });
       setSearchResults(result ? {
         ...result,
-        // also pass back the search terms for display if needed
         claimNumber: data.claimNumber,
         policyNumber: data.policyNumber,
         patientName: data.patientName,
       } : 'not-found');
     } catch (error) {
       console.error("Search failed:", error);
-      setSearchResults('not-found'); // Or a specific error state
+      setSearchResults('not-found'); 
       toast({
         title: "Search Error",
         description: "An unexpected error occurred during the search. Please try again.",
@@ -165,7 +167,7 @@ export function ClaimSearchForm() {
     clearErrors();
   };
   
-  const isSearchDisabled = isLoading || !hospitalIdValue || !isAnyIdentifierFilled || !formState.isValid;
+  const isSearchDisabled = isLoading || !hospitalIdValue || !isAnyIdentifierFilled || Object.keys(errors).length > 0;
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-2xl rounded-lg">
@@ -247,7 +249,7 @@ export function ClaimSearchForm() {
                   id="claimNumber" 
                   placeholder="e.g., 123456789" 
                   {...field} 
-                  type="tel" // For numeric keyboard on mobile
+                  type="tel" 
                   inputMode="numeric"
                   pattern="[0-9]*"
                   aria-describedby="claimNumberError"
@@ -291,7 +293,9 @@ export function ClaimSearchForm() {
             {errors.patientName && <p id="patientNameError" className="text-sm text-destructive mt-1">{errors.patientName.message}</p>}
           </div>
           {errors.root?.custom && <p className="text-sm text-destructive mt-1 text-center">{errors.root.custom.message}</p>}
-          {errors.root?.message && <p className="text-sm text-destructive mt-1 text-center">{errors.root.message}</p>}
+          {/* Display Zod's global refine error if not specific to a field */}
+          {errors.root?.message && !errors.claimNumber && !errors.policyNumber && !errors.patientName && <p className="text-sm text-destructive mt-1 text-center">{errors.root.message}</p>}
+
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row justify-center gap-4 p-6">
           <Button type="submit" className="w-full sm:w-auto" disabled={isSearchDisabled}>

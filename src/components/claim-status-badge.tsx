@@ -1,35 +1,50 @@
+
 import type { ClaimStatus } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Clock, Info, XCircle, Building, FileText, User, Hash } from 'lucide-react';
+import { CheckCircle2, Clock, Info, XCircle, Building, FileText, User, Hash, LogIn, LogOut, FileUp } from 'lucide-react';
 
 interface ClaimStatusBadgeProps {
   status: ClaimStatus;
 }
 
-const getStatusVisuals = (claimStage: string): { icon: React.ElementType, color: string, variant: "default" | "secondary" | "destructive" | "outline" } => {
+const getStatusVisuals = (claimStage: string): { icon: React.ElementType, colorClass: string, badgeVariant: "default" | "secondary" | "destructive" | "outline" } => {
   const stageLower = claimStage.toLowerCase();
-  if (stageLower.includes('approved') || stageLower.includes('processed') || stageLower.includes('completed')) {
-    return { icon: CheckCircle, color: 'text-green-600', variant: 'default' };
+
+  if (stageLower.includes('settled') || stageLower.includes('approved') || stageLower.includes('processed') || stageLower.includes('completed')) {
+    return { icon: CheckCircle2, colorClass: 'text-green-500', badgeVariant: 'default' };
   }
-  if (stageLower.includes('pending') || stageLower.includes('review') || stageLower.includes('submitted')) {
-    return { icon: Clock, color: 'text-blue-600', variant: 'secondary' };
+  if (stageLower.includes('admitted')) {
+    return { icon: LogIn, colorClass: 'text-primary', badgeVariant: 'secondary' };
+  }
+  if (stageLower.includes('discharged')) {
+    return { icon: LogOut, colorClass: 'text-slate-500', badgeVariant: 'outline' };
+  }
+  if (stageLower.includes('file submitted') || stageLower.includes('submitted')) {
+    return { icon: FileUp, colorClass: 'text-sky-500', badgeVariant: 'secondary' };
+  }
+  if (stageLower.includes('in review') || stageLower.includes('pending')) {
+    return { icon: Clock, colorClass: 'text-amber-500', badgeVariant: 'outline' };
   }
   if (stageLower.includes('denied') || stageLower.includes('rejected')) {
-    return { icon: XCircle, color: 'text-red-600', variant: 'destructive' };
+    return { icon: XCircle, colorClass: 'text-red-500', badgeVariant: 'destructive' };
   }
-  return { icon: Info, color: 'text-yellow-600', variant: 'outline' }; // Default/Information Requested
+  // Default for "Information Requested" or other specific stages
+  if (stageLower.includes('information requested')) {
+    return { icon: Info, colorClass: 'text-yellow-500', badgeVariant: 'outline' };
+  }
+  return { icon: Info, colorClass: 'text-muted-foreground', badgeVariant: 'outline' }; // Fallback
 };
 
 export function ClaimStatusBadge({ status }: ClaimStatusBadgeProps) {
-  const { icon: StatusIcon, color: iconColor, variant: badgeVariant } = getStatusVisuals(status.claimStage);
+  const { icon: StatusIcon, colorClass, badgeVariant } = getStatusVisuals(status.claimStage);
 
   return (
     <Card className="w-full shadow-lg bg-card">
       <CardHeader>
         <CardTitle className="flex items-center text-xl md:text-2xl font-headline">
-          <StatusIcon className={`mr-2 h-6 w-6 ${iconColor}`} aria-hidden="true" />
-          Claim Status: <Badge variant={badgeVariant} className="ml-2 text-sm">{status.claimStage}</Badge>
+          <StatusIcon className={`mr-2 h-6 w-6 ${colorClass}`} aria-hidden="true" />
+          Claim Status: <Badge variant={badgeVariant} className={`ml-2 text-sm ${badgeVariant === 'default' ? 'bg-green-500 hover:bg-green-600 text-white' : ''} ${badgeVariant === 'destructive' ? 'bg-red-500 hover:bg-red-600 text-white' : ''}`}>{status.claimStage}</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 text-sm md:text-base">
