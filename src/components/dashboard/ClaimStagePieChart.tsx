@@ -80,6 +80,7 @@ export function ClaimStagePieChart({ data }: ClaimStagePieChartProps) {
             </Pie>
             <Tooltip
               formatter={(value: number, name: string) => [`${value} claims`, name]}
+              cursor={false} 
             />
             <Legend />
           </PieChart>
