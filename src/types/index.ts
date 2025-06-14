@@ -4,14 +4,20 @@ export interface Hospital {
   name: string;
 }
 
+// Specific stages for dashboard KPIs
+export type ClaimStageKpi = "Admitted" | "Discharged" | "Submitted" | "Received" | "Settled";
+export const kpiClaimStages: ClaimStageKpi[] = ["Admitted", "Discharged", "Submitted", "Received", "Settled"];
+
+
 export interface ClaimStatus {
-  claimStage: string;
-  statusDate: string;
+  claimStage: string; // Allows for other stages like "Denied" in data
+  statusDate: string; // ISO date string (e.g., "2023-11-15")
   referenceNo: string;
   hospitalName?: string; 
   claimNumber?: string;
   policyNumber?: string;
   patientName?: string;
+  hospitalId?: string; // Added to associate claim with a hospital
 }
 
 export interface SearchParams {
@@ -28,7 +34,6 @@ export interface SearchFormValues {
   patientName: string;
 }
 
-// New types for Authentication
 export type UserRole = 'super-admin' | 'admin' | 'staff' | 'hospital' | null;
 
 export interface User {
@@ -36,6 +41,7 @@ export interface User {
   email: string;
   role: UserRole;
   name?: string;
+  hospitalId?: string; // Optional: For users associated with a specific hospital
 }
 
 export interface AuthContextType {
@@ -52,3 +58,4 @@ export interface LoginResponse {
   token?: string;
   message?: string;
 }
+

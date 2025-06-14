@@ -5,7 +5,7 @@ const mockUsers: User[] = [
   { id: '1', email: 'super@example.com', role: 'super-admin', name: 'Super Admin User' },
   { id: '2', email: 'admin@example.com', role: 'admin', name: 'Admin User' },
   { id: '3', email: 'staff@example.com', role: 'staff', name: 'Staff User' },
-  { id: '4', email: 'hospital@example.com', role: 'hospital', name: 'Hospital User' },
+  { id: '4', email: 'hospital@example.com', role: 'hospital', name: 'City Central Clinic User', hospitalId: 'hosp2' }, // Associated with hosp2
 ];
 
 // Simulate a backend API call for login

@@ -2,7 +2,7 @@
 import type { ClaimStatus } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, Clock, Info, XCircle, Building, FileText, User, Hash, LogIn, LogOut, FileUp } from 'lucide-react';
+import { CheckCircle2, Clock, Info, XCircle, Building, FileText, User, Hash, LogIn, LogOut, FileUp, Mail } from 'lucide-react';
 
 interface ClaimStatusBadgeProps {
   status: ClaimStatus;
@@ -11,7 +11,7 @@ interface ClaimStatusBadgeProps {
 const getStatusVisuals = (claimStage: string): { icon: React.ElementType, colorClass: string, badgeVariant: "default" | "secondary" | "destructive" | "outline" } => {
   const stageLower = claimStage.toLowerCase();
 
-  if (stageLower.includes('settled') || stageLower.includes('approved') || stageLower.includes('processed') || stageLower.includes('completed')) {
+  if (stageLower.includes('settled') || stageLower.includes('approved') || stageLower.includes('completed')) {
     return { icon: CheckCircle2, colorClass: 'text-green-500', badgeVariant: 'default' };
   }
   if (stageLower.includes('admitted')) {
@@ -23,13 +23,15 @@ const getStatusVisuals = (claimStage: string): { icon: React.ElementType, colorC
   if (stageLower.includes('file submitted') || stageLower.includes('submitted')) {
     return { icon: FileUp, colorClass: 'text-sky-500', badgeVariant: 'secondary' };
   }
+  if (stageLower.includes('received')) {
+    return { icon: Mail, colorClass: 'text-blue-500', badgeVariant: 'secondary' };
+  }
   if (stageLower.includes('in review') || stageLower.includes('pending')) {
     return { icon: Clock, colorClass: 'text-amber-500', badgeVariant: 'outline' };
   }
   if (stageLower.includes('denied') || stageLower.includes('rejected')) {
     return { icon: XCircle, colorClass: 'text-red-500', badgeVariant: 'destructive' };
   }
-  // Default for "Information Requested" or other specific stages
   if (stageLower.includes('information requested')) {
     return { icon: Info, colorClass: 'text-yellow-500', badgeVariant: 'outline' };
   }
