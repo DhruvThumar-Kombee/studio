@@ -1,4 +1,8 @@
 
+import type { z } from 'zod';
+import type { DischargeEntrySchema } from '@/lib/schemas/dischargeSchemas';
+
+
 export interface Hospital {
   id: string;
   name: string;
@@ -140,3 +144,16 @@ export interface PatientAdmission {
   status: ClaimStageKpi; // Initial status, e.g., "Admitted"
   // other relevant fields like claimId, policyDetailsId etc.
 }
+
+// Discharge Entry Types
+export interface DischargeEntry {
+  id: string;
+  admissionId: string; 
+  dischargeDate: Date; 
+  billGenerated: boolean;
+  finalBillAmount?: number;
+  documents: File[]; 
+  submittedByStaffId: string; 
+}
+
+export type DischargeEntryFormInput = z.infer<typeof DischargeEntrySchema>;
