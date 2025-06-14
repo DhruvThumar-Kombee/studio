@@ -13,10 +13,22 @@ export async function generateReportAction(
   
   const rawFormData: Record<string, any> = {
     reportType: formData.get('reportType') as string, // Keep as string for initial Zod parse
-    hospitalId: formData.get('hospitalId') as string | undefined,
-    partyId: formData.get('partyId') as string | undefined, // For TPA/Insurance
     // Dates will be parsed carefully
   };
+
+  const hospitalIdValue = formData.get('hospitalId') as string | null;
+  if (hospitalIdValue !== null && hospitalIdValue !== '') {
+    rawFormData.hospitalId = hospitalIdValue;
+  } else {
+    rawFormData.hospitalId = undefined; // Ensure it's undefined for Zod .optional()
+  }
+  
+  const partyIdValue = formData.get('partyId') as string | null; // For TPA/Insurance
+  if (partyIdValue !== null && partyIdValue !== '') {
+    rawFormData.partyId = partyIdValue;
+  } else {
+    rawFormData.partyId = undefined;
+  }
 
   const dateFromStr = formData.get('dateFrom') as string | null;
   const dateToStr = formData.get('dateTo') as string | null;
@@ -24,11 +36,6 @@ export async function generateReportAction(
   if (dateFromStr) rawFormData.dateFrom = new Date(dateFromStr);
   if (dateToStr) rawFormData.dateTo = new Date(dateToStr);
   
-  // Explicitly set undefined if empty string to avoid Zod coercion issues
-  if (rawFormData.hospitalId === '') rawFormData.hospitalId = undefined;
-  if (rawFormData.partyId === '') rawFormData.partyId = undefined;
-
-
   const validationResult = ReportFiltersSchema.safeParse(rawFormData);
 
   if (!validationResult.success) {
@@ -79,3 +86,4 @@ export async function generateReportAction(
     };
   }
 }
+

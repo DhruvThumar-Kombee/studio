@@ -26,6 +26,8 @@ const initialActionState: ReportActionResponse = {
   data: null,
 };
 
+const ALL_HOSPITALS_VALUE = "__ALL_HOSPITALS__"; // Constant for "All Hospitals" option
+
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -50,7 +52,7 @@ const reportTypeOptions: SelectOption[] = [
 ];
 
 export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorClientProps) {
-  const [reportState, formAction] = React.useActionState(generateReportAction, initialActionState);
+  const [reportState, formAction] = useActionState(generateReportAction, initialActionState);
   const { toast } = useToast();
   const reportContentRef = React.useRef<HTMLDivElement>(null);
 
@@ -60,7 +62,7 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
       reportType: ReportType.TOTAL_CLAIMS, // Default report type
       dateFrom: undefined,
       dateTo: undefined,
-      hospitalId: undefined,
+      hospitalId: undefined, // Default to undefined, meaning "All Hospitals"
       // partyId: undefined,
     },
   });
@@ -82,7 +84,12 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
     formData.append('reportType', data.reportType);
     if (data.dateFrom) formData.append('dateFrom', data.dateFrom.toISOString());
     if (data.dateTo) formData.append('dateTo', data.dateTo.toISOString());
-    if (data.hospitalId) formData.append('hospitalId', data.hospitalId);
+    
+    // Only append hospitalId if a specific hospital is selected
+    if (data.hospitalId && data.hospitalId !== ALL_HOSPITALS_VALUE) {
+      formData.append('hospitalId', data.hospitalId);
+    }
+    
     // if (data.partyId) formData.append('partyId', data.partyId);
     formAction(formData);
   };
@@ -111,7 +118,7 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
 
   const renderReportTable = () => {
     if (!reportState.success || !reportState.data || (Array.isArray(reportState.data) && reportState.data.length === 0)) {
-      if (reportState.message && reportState.message !== "Report generated successfully.") { // Avoid showing "no data" if a specific message like "No data found" is already there.
+      if (reportState.message && reportState.message !== "Report generated successfully.") { 
          return (
             <Alert variant="default" className="mt-6 bg-blue-50 border-blue-200 text-blue-700">
                 <AlertCircle className="h-4 w-4 text-blue-500" />
@@ -169,12 +176,16 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
               name="hospitalId"
               control={control}
               render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value || ''} disabled={availableHospitals.length === 0}>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={field.value || ALL_HOSPITALS_VALUE} // Use sentinel if undefined
+                  disabled={availableHospitals.length === 0}
+                >
                   <SelectTrigger id="hospitalId">
                     <SelectValue placeholder="All Hospitals" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Hospitals</SelectItem>
+                    <SelectItem value={ALL_HOSPITALS_VALUE}>All Hospitals</SelectItem>
                     {availableHospitals.map(hospital => (
                       <SelectItem key={hospital.value} value={hospital.value}>{hospital.label}</SelectItem>
                     ))}
@@ -221,7 +232,17 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
         </div>
         {formErrors.root && <p className="text-sm text-destructive mt-1 text-center">{formErrors.root.message}</p>}
         <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
-           <Button type="button" variant="outline" onClick={() => reset({ reportType: ReportType.TOTAL_CLAIMS, dateFrom: undefined, dateTo: undefined, hospitalId: undefined })} className="w-full sm:w-auto">
+           <Button 
+             type="button" 
+             variant="outline" 
+             onClick={() => reset({ 
+               reportType: ReportType.TOTAL_CLAIMS, 
+               dateFrom: undefined, 
+               dateTo: undefined, 
+               hospitalId: undefined // Reset to undefined
+             })} 
+             className="w-full sm:w-auto"
+           >
             Reset Filters
           </Button>
           <SubmitButton />
@@ -272,3 +293,4 @@ export function ReportGeneratorClient({ availableHospitals }: ReportGeneratorCli
     </div>
   );
 }
+
